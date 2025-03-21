@@ -2,23 +2,28 @@
   "tokens": [
     {
       "nombre": "regex1",
-      "regex": "(a|b)*~a~b~b~#"
+      "regex": "(a|b)*~a~b~b~#",
+      "id": "#1"
     },
     {
       "nombre": "regex2",
-      "regex": "a~(b|ε)~#"
+      "regex": "a~(b|ε)~#",
+      "id": "#2"
     },
     {
       "nombre": "regex3",
-      "regex": "(a|ε)~b~b*~#"
+      "regex": "(a|ε)~b~b*~#",
+      "id": "#3"
     },
     {
       "nombre": "regex4",
-      "regex": "(a*|b*)~(a*|b*)*~#"
+      "regex": "(a*|b*)~(a*|b*)*~#",
+      "id": "#4"
     },
     {
       "nombre": "regex5",
-      "regex": "(0|ε)~((1|ε)|ε)~0*~#"
+      "regex": "(0|ε)~((1|ε)|ε)~0*~#",
+      "id": "#5"
     }
   ]
 }

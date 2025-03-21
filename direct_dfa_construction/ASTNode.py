@@ -14,6 +14,7 @@ class ASTNode:
 
 class AST:
     def __init__(self, postfix_expression: str):
+        self.regex_counter = 0
         self.root: ASTNode = self.postfixToAst(postfix_expression)
         self.nextPosTable = {}
         self.alphabet = set()
@@ -23,10 +24,18 @@ class AST:
         stack = []
 
         for char in postfix:
-            if char.isalnum() or char == "ε" or char == "#":
+            if char.isalnum() or char == "ε":
                 node = ASTNode(char)
                 stack.append(node)
                 print(f"Found {char}, pushing symbol to the stack")
+
+            elif char == "#":
+                # Asignar un identificador unico al #
+                self.regex_counter += 1
+                unique_id = f"#{self.regex_counter}"
+                node = ASTNode(unique_id)
+                stack.append(node)
+                print(f"Found {char}, assigning unique ID {unique_id}, and pushing to the stack")
 
             elif char in {'|', '~'}:
                 right = stack.pop()

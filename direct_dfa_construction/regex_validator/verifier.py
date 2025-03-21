@@ -147,6 +147,7 @@ def get_formatted_normalized_expressions(file):
         json_data = json.load(f)
     
     tokens = json_data.get('tokens', [])
+    id_counter = 1
 
     for token in tokens:
         nombre = token.get('nombre')
@@ -167,8 +168,11 @@ def get_formatted_normalized_expressions(file):
 
                 output_tokens.append({
                     "nombre": nombre,
-                    "regex": formatted_normalized_regex
+                    "regex": formatted_normalized_regex,
+                    "id": f"#{id_counter}"
                 })
+
+                id_counter += 1
 
                 # Prints to see if any string may have an error on any of the validation and transformation process
                 print(f"\nOriginal Expression: {exp}")

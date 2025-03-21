@@ -1,7 +1,7 @@
 from regex_validator.verifier import get_formatted_normalized_expressions
 from regex_unifier.unifier import combine_formatted_regex
-from directAFD import DFA
 from ASTNode import AST
+from directAFD import DFA
 import copy
 
 def getPrecedence(char):
@@ -101,6 +101,8 @@ def create_AST_from_combined_postfix():
     print("Result of combining every regex: ", final_regex)
 
     postfix_final_regex = infixToPostfix(final_regex)
+
+    print("Postfix final regex: ", postfix_final_regex)
 
     ast = AST(postfix_final_regex)
     ast.draw_ast().render('ast', view=False)
