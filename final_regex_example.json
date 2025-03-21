@@ -1,0 +1,24 @@
+{
+  "tokens": [
+    {
+      "nombre": "regex1",
+      "regex": "(a|b)*~a~b~b~#"
+    },
+    {
+      "nombre": "regex2",
+      "regex": "a~(b|ε)~#"
+    },
+    {
+      "nombre": "regex3",
+      "regex": "(a|ε)~b~b*~#"
+    },
+    {
+      "nombre": "regex4",
+      "regex": "(a*|b*)~(a*|b*)*~#"
+    },
+    {
+      "nombre": "regex5",
+      "regex": "(0|ε)~((1|ε)|ε)~0*~#"
+    }
+  ]
+}

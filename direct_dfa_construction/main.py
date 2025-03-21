@@ -1,5 +1,6 @@
 import json
 from regex_validator.translator import getPostfixExpressionsFromFile
+from regex_unifier.unifier import combine_formatted_regex
 from directAFD import DFA
 from ASTNode import AST
 import copy
@@ -12,7 +13,8 @@ print(normalizedExpressions)
 
 postfixExpressions.append("exit")
 
-
+final_regex = combine_formatted_regex(normalizedExpressions) 
+print("finalllll: ", final_regex)
 option = -1
 expressionsCount = len(postfixExpressions)
 
