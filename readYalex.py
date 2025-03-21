@@ -8,8 +8,10 @@ Archivo:
     Este archivo se encarga de leer los archivos YALex para luego crear un archivo json con las expresiones regulares.
 
 """
-class readYalex:
 
+# Archivo completo: procesar_yalex.py
+
+class readYalex:
     def __init__(self, yalex_file):
         self.yalex_file = yalex_file
         self.tamanio_buffer = 10
@@ -20,16 +22,156 @@ class readYalex:
         with open(self.yalex_file, "r", encoding="utf-8") as f:
             return list(f.read())
 
-    def cargar_buffer(self, entrada):
-        buffer = entrada[self.inicio:self.inicio + self.tamanio_buffer]
-        if len(buffer) < self.tamanio_buffer:
-            buffer.append("eof")  # Agrega eof si el buffer es más pequeño de lo esperado
-        return buffer
+# Funciones auxiliares para extraer tokens (palabras o grupos) del archivo
 
-    def read_and_print(self):
-        """Lee el archivo y muestra su contenido en bloques de tamaño buffer."""
-        entrada = self.read_file()
-        while self.inicio < len(entrada):
-            buffer = self.cargar_buffer(entrada)
-            print("".join(buffer))  # Imprime el contenido del buffer como string
-            self.inicio += self.avance  # Avanza en el archivo
+def read_group(entrada, index, open_char, close_char):
+    """
+    Lee desde 'open_char' hasta encontrar el 'close_char'
+    y luego sigue concatenando hasta encontrar un espacio.
+    """
+    token = ""
+    # Agrega el caracter de apertura
+    token += entrada[index]
+    index += 1
+    # Lee hasta encontrar el caracter de cierre
+    while index < len(entrada) and entrada[index] != close_char:
+        token += entrada[index]
+        index += 1
+    # Agrega el caracter de cierre (si existe)
+    if index < len(entrada):
+        token += entrada[index]
+        index += 1
+    # Luego, sigue concatenando caracteres hasta topar con un espacio en blanco
+    while index < len(entrada) and not entrada[index].isspace():
+        token += entrada[index]
+        index += 1
+    return token, index
+
+def read_quoted(entrada, index):
+    """
+    Lee una secuencia iniciada por comillas simples o dobles,
+    concatenando hasta encontrar la comilla de cierre y continuando
+    hasta el siguiente espacio en blanco.
+    """
+    quote_char = entrada[index]
+    token = ""
+    #token += quote_char
+    index += 1
+    while index < len(entrada) and entrada[index] != quote_char:
+        token += entrada[index]
+        index += 1
+    if index < len(entrada):
+        #token += entrada[index]
+        index += 1
+    while index < len(entrada) and not entrada[index].isspace():
+        token += entrada[index]
+        index += 1
+    return token, index
+
+def read_token(entrada, index):
+    """
+    Lee y retorna un token desde la posición 'index' hasta encontrar un espacio en blanco.
+    Si encuentra caracteres especiales (grupos entre [] o () o comillas) los procesa en conjunto.
+    """
+    token = ""
+    while index < len(entrada) and not entrada[index].isspace():
+        char = entrada[index]
+        if char in ["[", "("]:
+            # Para corchetes o paréntesis se lee hasta su cierre correspondiente
+            close_char = "]" if char == "[" else ")"
+            token_part, index = read_group(entrada, index, char, close_char)
+            token += token_part
+        elif char in ["'", '"']:
+            # Para comillas simples o dobles
+            token_part, index = read_quoted(entrada, index)
+            token += token_part
+        else:
+            token += char
+            index += 1
+    return token, index
+
+def process_yalex_file(filename):
+    """
+    Procesa el archivo YALex para extraer:
+      - let_tokens: nombres de tokens de la sección 'let'
+      - let_regex: expresiones regulares correspondientes
+      - rule_tokens: tokens (o regex) de la sección 'rule'
+      - rule_actions: acción de retorno asociada (cadena vacía si no hay acción)
+    """
+    # Leemos el archivo completo como lista de caracteres
+    ry = readYalex(filename)
+    entrada = ry.read_file()
+    index = 0
+    tokens = []
+    # Se recorre la entrada carácter a carácter, extrayendo tokens
+    while index < len(entrada):
+        # Se salta cualquier espacio en blanco
+        if entrada[index].isspace():
+            index += 1
+            continue
+        tk, index = read_token(entrada, index)
+        tokens.append(tk)
+    
+    # Ahora procesamos la lista de tokens para llenar nuestras 4 listas
+    let_tokens = []
+    let_regex = []
+    rule_tokens = []
+    rule_actions = []
+    
+    section = None  # Indica la sección actual: None, "let" o "rule"
+    i = 0
+    while i < len(tokens):
+        token = tokens[i]
+        # Si se encuentra la palabra "rule" se cambia a la segunda sección
+        if token.lower() == "rule":
+            section = "rule"
+            i += 1
+            continue
+        
+        # Procesamiento de la sección let (definición de tokens y regex)
+        if section != "rule":
+            if token.lower() == "let":
+                # Se espera el formato: let <nombre> = <expresión>
+                if i + 3 < len(tokens) and tokens[i+2] == "=":
+                    nombre = tokens[i+1]
+                    regex_exp = tokens[i+3]
+                    let_tokens.append(nombre)
+                    let_regex.append(regex_exp)
+                    i += 4
+                    continue
+            i += 1
+        else:
+            # En la sección rule se ignoran tokens como "=" o "tokens" (del encabezado)
+            if token.lower() == "tokens":
+                i += 2  
+                continue
+            # Omitir comentarios (* *)
+            if "(*" in token:
+                i += 1
+                continue
+            # El carácter '|' indica separación entre reglas
+            if token == "|":
+                i += 1
+                continue
+            # Se asume que el token actual es el patrón de la regla
+            patron = token
+            accion = ""
+            i += 1
+            # Si el siguiente token es "{" se procesa la acción
+            if i < len(tokens) and tokens[i] == "{":
+                i += 1  # Se salta "{"
+                if i < len(tokens) and tokens[i].lower() == "return":
+                    i += 1  # Se salta "return"
+                    if i < len(tokens):
+                        accion = tokens[i]
+                        i += 1
+                # Se salta hasta encontrar "}"
+                while i < len(tokens) and tokens[i] != "}":
+                    i += 1
+                if i < len(tokens) and tokens[i] == "}":
+                    i += 1
+            rule_tokens.append(patron)
+            rule_actions.append(accion)
+    
+    return let_tokens, let_regex, rule_tokens, rule_actions
+
