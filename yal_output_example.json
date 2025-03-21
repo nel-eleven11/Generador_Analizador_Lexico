@@ -1,0 +1,24 @@
+{
+    "tokens": [
+        {
+            "nombre": "regex1",
+            "regex": "(a|b)*abb"
+        },
+        {
+            "nombre": "regex2",
+            "regex": "ab?"
+        },
+        {
+            "nombre": "regex3",
+            "regex": "a?b+"
+        },
+        {
+            "nombre": "regex4",
+            "regex": "(a*|b*)+"
+        },
+        {
+            "nombre": "regex5",
+            "regex": "0?(1?)?0*"
+        }
+    ]
+}
