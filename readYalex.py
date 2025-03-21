@@ -170,8 +170,71 @@ def process_yalex_file(filename):
                     i += 1
                 if i < len(tokens) and tokens[i] == "}":
                     i += 1
+            else:
+                accion = token
+                i += 1
             rule_tokens.append(patron)
             rule_actions.append(accion)
     
     return let_tokens, let_regex, rule_tokens, rule_actions
 
+
+def custom_replace(expr, key, replacement):
+    """
+    Reemplaza todas las ocurrencias de 'key' en 'expr' por 'replacement'
+    respetando límites de palabra (se verifica que el carácter anterior y posterior
+    no sean alfanuméricos).
+    """
+    result = ""
+    i = 0
+    key_len = len(key)
+    while i < len(expr):
+        # Verificar si en la posición i se encuentra 'key'
+        if expr[i:i+key_len] == key:
+            left_boundary = (i == 0) or (not expr[i-1].isalnum())
+            right_index = i + key_len
+            right_boundary = (right_index >= len(expr)) or (not expr[right_index].isalnum())
+            if left_boundary and right_boundary:
+                result += replacement
+                i += key_len
+                continue
+        result += expr[i]
+        i += 1
+    return result
+
+def expand_expression(expression, definitions):
+    """
+    Expande recursivamente en 'expression' las referencias a tokens definidos en 'definitions'.
+    Se reemplazan ocurrencias que coincidan con límites de palabra.
+    """
+    previous = None
+    new_expr = expression
+    # Ordenar las claves por longitud decreciente para evitar conflictos
+    sorted_keys = sorted(definitions.keys(), key=lambda k: len(k), reverse=True)
+    while new_expr != previous:
+        previous = new_expr
+        for key in sorted_keys:
+            new_expr = custom_replace(new_expr, key, definitions[key])
+    return new_expr
+
+def simplify_tokens(let_tokens, let_regex, rule_tokens, rule_actions):
+    """
+    Simplifica los tokens de la sección rule usando las definiciones de la sección let.
+    Retorna dos listas:
+      - final_tokens: tokens en su forma expandida (por ejemplo, "ws" se transforma en "[' ''\t''\n']+")
+      - actions: las acciones o returns asociados (idénticas a rule_actions)
+    """
+    # Construir el diccionario de definiciones
+    definitions = {}
+    for name, regex in zip(let_tokens, let_regex):
+        definitions[name] = regex
+
+    final_tokens = []
+    for token in rule_tokens:
+        if token in definitions:
+            expanded = expand_expression(definitions[token], definitions)
+            final_tokens.append(expanded)
+        else:
+            final_tokens.append(token)
+    actions = rule_actions[:]  # Copia de la lista
+    return final_tokens, actions
