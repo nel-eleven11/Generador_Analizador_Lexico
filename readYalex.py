@@ -375,10 +375,14 @@ def transform_let_regex_list(let_regex):
     """
     Recorre la lista let_regex y, para cada expresión que contenga corchetes, aplica
     la transformación para generar una expresión más "plana" basada en la alternancia.
-    Antes de agregar la expresión resultante, se elimina cualquier comilla innecesaria.
+    Además, antes de procesar se verifica si la expresión contiene un espacio en blanco
+    delimitado por comillas (' ' o " ") y se reemplaza por el caracter épsilon ε.
+    Luego se elimina cualquier comilla innecesaria.
     """
     new_let_regex = []
     for regex in let_regex:
+        # Reemplazar espacios en blanco entre comillas por ε
+        regex = regex.replace("' '", "ε").replace('" "', "ε")
         if '[' in regex:
             new_regex = transform_brackets(regex)
         else:
@@ -386,3 +390,4 @@ def transform_let_regex_list(let_regex):
         new_regex = remove_useless_quotes(new_regex)
         new_let_regex.append(new_regex)
     return new_let_regex
+
