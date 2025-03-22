@@ -1,0 +1,56 @@
+{
+    "tokens": [
+        {
+            "nombre": "ws",
+            "regex": "[' ''\t''\n']+"
+        },
+        {
+            "nombre": "ID",
+            "regex": "['A'-'Z''a'-'z'](['A'-'Z''a'-'z']|(_)*|['0'-'9'])*"
+        },
+        {
+            "nombre": "NUMBER",
+            "regex": "['0'-'9']+(.['0'-'9']+)?('E'['+''-']?['0'-'9']+)?"
+        },
+        {
+            "nombre": "SEMICOLON",
+            "regex": ";"
+        },
+        {
+            "nombre": "ASSIGNOP",
+            "regex": ":="
+        },
+        {
+            "nombre": "LT",
+            "regex": "<"
+        },
+        {
+            "nombre": "EQ",
+            "regex": "="
+        },
+        {
+            "nombre": "PLUS",
+            "regex": "+"
+        },
+        {
+            "nombre": "MINUS",
+            "regex": "-"
+        },
+        {
+            "nombre": "TIMES",
+            "regex": "*"
+        },
+        {
+            "nombre": "DIV",
+            "regex": "/"
+        },
+        {
+            "nombre": "LPAREN",
+            "regex": "("
+        },
+        {
+            "nombre": "RPAREN",
+            "regex": ")"
+        }
+    ]
+}

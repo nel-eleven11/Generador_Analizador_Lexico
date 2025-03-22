@@ -9,7 +9,7 @@ Archivo:
 
 """
 
-# Archivo completo: procesar_yalex.py
+import json
 
 class readYalex:
     def __init__(self, yalex_file):
@@ -23,6 +23,9 @@ class readYalex:
             return list(f.read())
 
 # Funciones auxiliares para extraer tokens (palabras o grupos) del archivo
+
+def unescape_string(s):
+    return s.encode('utf-8').decode('unicode_escape')
 
 def read_group(entrada, index, open_char, close_char):
     """
@@ -134,7 +137,8 @@ def process_yalex_file(filename):
                 # Se espera el formato: let <nombre> = <expresión>
                 if i + 3 < len(tokens) and tokens[i+2] == "=":
                     nombre = tokens[i+1]
-                    regex_exp = tokens[i+3]
+                    # Aplicamos un unescape a la expresión regular
+                    regex_exp = unescape_string(tokens[i+3])
                     let_tokens.append(nombre)
                     let_regex.append(regex_exp)
                     i += 4
@@ -238,3 +242,28 @@ def simplify_tokens(let_tokens, let_regex, rule_tokens, rule_actions):
             final_tokens.append(token)
     actions = rule_actions[:]  # Copia de la lista
     return final_tokens, actions
+
+
+def guardar_tokens_json(final_tokens, actions, output_file):
+    """
+    Crea un archivo JSON con la siguiente estructura:
+    {
+        "tokens": [
+            {
+                "nombre": <acción o return>,
+                "regex": <token expandido>
+            },
+            ...
+        ]
+    }
+    Los elementos se crean emparejando cada token final con su acción correspondiente.
+    """
+    tokens_list = []
+    for nombre, regex in zip(actions, final_tokens):
+        tokens_list.append({
+            "nombre": nombre,
+            "regex": regex
+        })
+    data = {"tokens": tokens_list}
+    with open(output_file, "w", encoding="utf-8") as f:
+        json.dump(data, f, indent=4, ensure_ascii=False)
