@@ -1,8 +1,8 @@
 from regex_validator.verifier import get_formatted_normalized_expressions
 from regex_unifier.unifier import combine_formatted_regex
 from ASTNode import AST
-from directAFD import DFA
-import copy
+import json
+import pickle 
 
 def getPrecedence(char):
     precedence = {
@@ -109,35 +109,54 @@ def create_AST_from_combined_postfix():
 
     return ast
 
-create_AST_from_combined_postfix()
-# ast.add_position_to_leaves()
+def direct_construction_algorithm():
+    ast = create_AST_from_combined_postfix()
+    ast.add_position_to_leaves()
 
-# print("\nCalculating nullability")
-# ast.calculate_AST_nullability()
+    print("\nCalculating nullability")
+    ast.calculate_AST_nullability()
 
-# print("\nCalculating first pos")
-# ast.calculate_AST_firstPos()
+    print("\nCalculating first pos")
+    ast.calculate_AST_firstPos()
 
-# print("\nCalculating last pos")
-# ast.calculate_AST_lastPos()
+    print("\nCalculating last pos")
+    ast.calculate_AST_lastPos()
 
-# print("\nCalculating next pos")
-# ast.calculate_AST_nextPos()
+    print("\nCalculating next pos")
+    ast.calculate_AST_nextPos()
 
-# transition_table, acceptance_states = ast.nextPos_table_to_transition_table()
+    transition_table, acceptance_states = ast.nextPos_table_to_transition_table()
 
-# print("\nTransition table final:\n", transition_table)
-# print("\nAcceptance states: ", acceptance_states)
+    print("\nTransition table final:\n", transition_table)
+    print("\nAcceptance states: ", acceptance_states)
 
+    return transition_table, acceptance_states
 
+def convert_sets_to_lists(obj):
+        if isinstance(obj, set):
+            return list(obj)
+        elif isinstance(obj, dict):
+            return {key: convert_sets_to_lists(value) for key, value in obj.items()}
+        elif isinstance(obj, list):
+            return [convert_sets_to_lists(item) for item in obj]
+        else:
+            return obj
 
-# dfa = DFA(transition_table, acceptance_states, ast.alphabet)
-# dfa.draw_dfa('dfa')
-# min_dfa = copy.deepcopy(dfa) 
-# mdfa = min_dfa.minimize()
-# mdfa.draw_dfa('min_dfa')
-# test_string = input("Enter a string to test: ")
-# if dfa.verifyString(test_string):
-#     print("Accepted!")
-# else:
-#     print("Rejected!")
+def save_to_json(dictionary, filename):
+
+    dictionary_converted = convert_sets_to_lists(dictionary)
+
+    with open(filename, 'w') as file:
+        json.dump(dictionary_converted, file, indent=4)
+
+def save_to_pickle(dictionary, filename):
+    with open(filename, 'wb') as file:
+        pickle.dump(dictionary, file)
+
+transition_table, acceptance_states = direct_construction_algorithm()
+
+save_to_json(transition_table, "transition_table.json")
+save_to_json(acceptance_states, "acceptance_states.json")
+
+save_to_pickle(transition_table, "transition_table.pkl")
+save_to_pickle(acceptance_states, "acceptance_states.pkl")

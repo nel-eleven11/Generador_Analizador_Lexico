@@ -15,10 +15,11 @@ class ASTNode:
 class AST:
     def __init__(self, postfix_expression: str):
         self.regex_counter = 0
+        self.hashtag_id_list = []
         self.root: ASTNode = self.postfixToAst(postfix_expression)
         self.nextPosTable = {}
         self.alphabet = set()
-        self.end_state = 0
+        self.end_state = {}
 
     def postfixToAst(self, postfix):
         stack = []
@@ -33,6 +34,7 @@ class AST:
                 # Asignar un identificador unico al #
                 self.regex_counter += 1
                 unique_id = f"#{self.regex_counter}"
+                self.hashtag_id_list.append(unique_id)
                 node = ASTNode(unique_id)
                 stack.append(node)
                 print(f"Found {char}, assigning unique ID {unique_id}, and pushing to the stack")
@@ -49,6 +51,7 @@ class AST:
                 node = ASTNode(char, left)
                 stack.append(node)
                 print(f"Found {char}, retrieving {left.value} and asigning it as left child, then char is pushed to the stack")
+        print("Unique hastag ID's: ", self.hashtag_id_list)
 
         return stack.pop()
 
@@ -85,7 +88,8 @@ class AST:
 
                 root.position = pos_counter[0]
 
-                if root.value not in ["ε", "*", "|", "~", "#"]:
+                # now we changed so the root value is not in the ID's #1, #2 ..., # is not part of the alphabet
+                if root.value not in ["ε", "*", "|", "~"] and root.value not in self.hashtag_id_list:
                     self.alphabet.update([root.value])
 
                 # Tis will initialize the table for next pos. So later we dont have to traverse the tree again.
@@ -95,8 +99,8 @@ class AST:
                     pos_counter[0] += 1
 
                     # also here we adentify the number of the node that has #
-                    if root.value == "#":
-                        self.end_state = root.position
+                    if root.value in self.hashtag_id_list:
+                        self.end_state[root.value] = root.position  # Usamos un diccionario para mapear #_i a su posición
                     
 
                     print(f"{root.value},{root.position}", end = " ")
@@ -334,7 +338,6 @@ class AST:
         # initial state is firstPos of root
         inital_set = self.root.firstPos
         all_sets.add(frozenset(inital_set))
-
         non_evaluated_sets = all_sets - evaluated_sets
 
         transition_table[state_counter] = {"positions": inital_set, "transitions": {}}
@@ -391,18 +394,15 @@ class AST:
 
             print("\n")
 
-        acceptance_states = set()
+        acceptance_states = {}
 
         for index, values in transition_table.items():
             print(index, values)
 
-            for key, value in values.items():
-                
-                if self.end_state in values["positions"]:
-                    print(index, "is acceptance")
-                    acceptance_states.add(index)
-
-                    break
+            for hashtag_id, position in self.end_state.items():
+                if position in values["positions"]:
+                    print(f"State {index} is acceptance for {hashtag_id}")
+                    acceptance_states[index] = hashtag_id  # Mapeamos el estado al identificador del #
 
         return transition_table, acceptance_states
 
