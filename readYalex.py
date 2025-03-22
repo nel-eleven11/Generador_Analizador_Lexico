@@ -267,3 +267,122 @@ def guardar_tokens_json(final_tokens, actions, output_file):
     data = {"tokens": tokens_list}
     with open(output_file, "w", encoding="utf-8") as f:
         json.dump(data, f, indent=4, ensure_ascii=False)
+
+
+def parse_bracket(expr, i):
+    """
+    Dado que en expr[i] se encuentra un '[', se procesa el grupo hasta el correspondiente ']'
+    y se transforma en una agrupación con alternancia.
+    Se extraen los tokens (entre comillas) y se detectan rangos (p.ej., '0'-'9').
+    Soporta grupos anidados.
+    
+    Retorna una tupla (transformed, nuevo_indice)
+    """
+    alternatives = []
+    i += 1  # saltar '['
+    while i < len(expr) and expr[i] != ']':
+        if expr[i].isspace():
+            i += 1
+            continue
+        # Procesar token entre comillas
+        if expr[i] in ["'", '"']:
+            quote = expr[i]
+            i += 1
+            token_val = ""
+            while i < len(expr) and expr[i] != quote:
+                token_val += expr[i]
+                i += 1
+            i += 1  # saltar comilla de cierre
+            # Si es doble comilla, se toman cada uno de sus caracteres por separado
+            if quote == '"':
+                for ch in token_val:
+                    alternatives.append(ch)
+            else:
+                alternatives.append(token_val)
+            # Verificar si se define un rango (por ejemplo, '0'-'9')
+            if i < len(expr) and expr[i] == '-':
+                i += 1  # saltar '-'
+                if i < len(expr) and expr[i] in ["'", '"']:
+                    quote2 = expr[i]
+                    i += 1
+                    token_val2 = ""
+                    while i < len(expr) and expr[i] != quote2:
+                        token_val2 += expr[i]
+                        i += 1
+                    i += 1  # saltar comilla de cierre
+                    if len(token_val) == 1 and len(token_val2) == 1:
+                        # Se elimina el token anterior y se expande el rango
+                        alternatives.pop()
+                        for c in range(ord(token_val), ord(token_val2) + 1):
+                            alternatives.append(chr(c))
+                    # Si no son de un solo carácter, se puede definir otro comportamiento
+                else:
+                    alternatives.append('-')
+        elif expr[i] == '[':
+            # Grupo anidado: se procesa recursivamente.
+            nested_trans, i = parse_bracket(expr, i)
+            alternatives.append(nested_trans)
+        else:
+            # Cualquier otro carácter se agrega tal cual.
+            alternatives.append(expr[i])
+            i += 1
+    if i < len(expr) and expr[i] == ']':
+        i += 1  # saltar ']'
+    transformed = "(" + "|".join(alternatives) + ")"
+    return transformed, i
+
+def transform_brackets(expr):
+    """
+    Procesa la expresión expr y reemplaza cada grupo entre corchetes [ ... ]
+    por una agrupación con alternancia, aplicando recursividad para grupos anidados.
+    """
+    result = ""
+    i = 0
+    while i < len(expr):
+        if expr[i] == '[':
+            trans, i = parse_bracket(expr, i)
+            result += trans
+        else:
+            result += expr[i]
+            i += 1
+    return result
+
+def remove_useless_quotes(expr):
+    """
+    Recorre la expresión expr y elimina las comillas simples o dobles que encierran
+    un contenido sin propósito, es decir, convierte 'a' o "a" en a.
+    """
+    result = ""
+    i = 0
+    while i < len(expr):
+        if expr[i] in ["'", '"']:
+            quote = expr[i]
+            i += 1
+            temp = ""
+            while i < len(expr) and expr[i] != quote:
+                temp += expr[i]
+                i += 1
+            if i < len(expr) and expr[i] == quote:
+                i += 1  # saltar comilla de cierre
+            result += temp
+        else:
+            result += expr[i]
+            i += 1
+    return result
+
+
+def transform_let_regex_list(let_regex):
+    """
+    Recorre la lista let_regex y, para cada expresión que contenga corchetes, aplica
+    la transformación para generar una expresión más "plana" basada en la alternancia.
+    Antes de agregar la expresión resultante, se elimina cualquier comilla innecesaria.
+    """
+    new_let_regex = []
+    for regex in let_regex:
+        if '[' in regex:
+            new_regex = transform_brackets(regex)
+        else:
+            new_regex = regex
+        new_regex = remove_useless_quotes(new_regex)
+        new_let_regex.append(new_regex)
+    return new_let_regex
