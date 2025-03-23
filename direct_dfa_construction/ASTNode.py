@@ -22,7 +22,7 @@ class AST:
         self.end_state = {}
 
     def postfixToAst(self, postfix):
-        special_simbols = [".", ";", "-"]
+        special_simbols = [".", ";", ":", "=", "-", "<", "+", "_", "\t", "\n", "/"]
         stack = []
         i = 0
         postfix_len = len(postfix)
