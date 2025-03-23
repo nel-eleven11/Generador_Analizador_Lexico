@@ -32,22 +32,8 @@ def infixToPostfix(formattedRegEx):
     while i < regexLen:
         char = formattedRegEx[i]
 
-        # Handle keywords like 'if' and 'else'
-        if char.isalpha():
-            keyword = ""
-            while i < regexLen and formattedRegEx[i].isalpha():
-                keyword += formattedRegEx[i]
-                i += 1
-            if keyword in keywords:
-                postfix += keyword
-                continue
-            else:
-                postfix += keyword
-                char = ''
-                i -= 1
-
         # Handle escaped characters
-        elif char == "\\":
+        if char == "\\":
             postfix += formattedRegEx[i + 1]
             i += 2
             continue
@@ -85,8 +71,6 @@ def create_AST_from_combined_postfix():
     print("FInal token list", final_token_list)
 
     final_regex = combine_formatted_regex(formatted_normalized_exp) 
-
-    print("\nWelcome, which expression do you want to test?")
 
     # WHen is say normalized i refer to translating an expression like ab? to a(b|ε)
     # That way we only have the core regex simbols |, *, + and concatenation (~)
@@ -153,10 +137,12 @@ def save_to_pickle(dictionary, filename):
     with open(filename, 'wb') as file:
         pickle.dump(dictionary, file)
 
-transition_table, acceptance_states = direct_construction_algorithm()
+get_formatted_normalized_expressions("yal_output_example.json")
 
-save_to_json(transition_table, "transition_table.json")
-save_to_json(acceptance_states, "acceptance_states.json")
+#transition_table, acceptance_states = direct_construction_algorithm()
 
-save_to_pickle(transition_table, "transition_table.pkl")
-save_to_pickle(acceptance_states, "acceptance_states.pkl")
+#save_to_json(transition_table, "transition_table.json")
+#save_to_json(acceptance_states, "acceptance_states.json")
+
+#save_to_pickle(transition_table, "transition_table.pkl")
+#save_to_pickle(acceptance_states, "acceptance_states.pkl")

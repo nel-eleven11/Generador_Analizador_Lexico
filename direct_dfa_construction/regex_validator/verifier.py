@@ -1,5 +1,49 @@
 import json
 
+def simplifyRegex(regex):
+    """Simplify redundant expressions in the regex"""
+    # Simplify expressions of the form (((expr))) to (expr)
+    while True:
+        # Find nested parentheses patterns
+        i = 0
+        simplified = False
+        while i < len(regex):
+            if regex[i:i+2] == '((':
+                # Find the matching closing parentheses
+                open_count = 2
+                j = i + 2
+                while j < len(regex) and open_count > 0:
+                    if regex[j] == '(':
+                        open_count += 1
+                    elif regex[j] == ')':
+                        open_count -= 1
+                    j += 1
+                
+                if j < len(regex) and regex[j-2:j] == '))':
+                    # Found a pattern like ((expr))
+                    inner_expr = regex[i+1:j-1]
+                    if isBalanced(inner_expr):
+                        # Replace ((expr)) with (expr)
+                        regex = regex[:i] + inner_expr + regex[j:]
+                        simplified = True
+                        break
+            i += 1
+        
+        if not simplified:
+            break
+    
+    # Simplify expressions of the form (expr|ε|ε) to (expr|ε)
+    regex = regex.replace('|ε|ε', '|ε')
+    
+    # Simplify expressions where we have redundant empty string options
+    i = 0
+    while i < len(regex) - 3:
+        if regex[i:i+4] == '()|ε':
+            regex = regex[:i] + 'ε' + regex[i+4:]
+        i += 1
+    
+    return regex
+
 def stackTopMatchesSimbol(char, stack):
     if char == ")" and stack[-1] == "(":
         return True
@@ -45,63 +89,101 @@ def expressionIsBalanced(regex):
         print(f"Stack is not empty after processing all characters: {stack}")
         return False
 
-def normalizePlusSign(regex):
-    normalized = ""
+def isBalanced(expr):
+    """Check if an expression has balanced parentheses"""
     stack = []
-    i = 0
-    while i < len(regex):
-        if regex[i] == '+' and i > 0:
-            subexpr = ""
-            if regex[i - 1] in [')', ']']:
-                # Find the matching opening symbol
-                open_symbols = {'(': ')', '[': ']'}
-                close_symbols = {')': '(', ']': '['}
-                open_symbol = close_symbols[regex[i - 1]]
-                open_parens = 1
-                j = i - 2
-                while j >= 0 and open_parens > 0:
-                    if regex[j] == open_symbol:
-                        open_parens -= 1
-                    elif regex[j] == regex[i - 1]:
-                        open_parens += 1
-                    j -= 1
-                j += 1
-                subexpr = regex[j:i]
-                normalized = normalized[:j] + f"{subexpr}{subexpr}*"
-            else:
-                subexpr = regex[i - 1]
-                normalized = normalized[:-1] + f"{subexpr}{subexpr}*"
-        else:
-            normalized += regex[i]
-        i += 1
-    return normalized
+    for char in expr:
+        if char == '(':
+            stack.append(char)
+        elif char == ')':
+            if not stack or stack[-1] != '(':
+                return False
+            stack.pop()
+    return len(stack) == 0
 
 def normalizeRegex(regex):
-    # Normalize the `?` first
-    
-
-    if "?" in regex:
-
-        normalized = ""
-        i = 0
-        while i < len(regex):
-            if i + 1 < len(regex) and regex[i + 1] == '?':
-                if regex[i] == ")":
-                    normalized += f"|ε)"
+    """
+    Normalize a regular expression by converting ? and + operators to their basic forms
+    ? becomes (|ε)
+    + becomes a copy followed by *
+    """
+    # Process the regex character by character
+    i = 0
+    while i < len(regex):
+        # Process question mark operator
+        if i + 1 < len(regex) and regex[i + 1] == '?':
+            # We have a question mark, figure out what it applies to
+            if regex[i] == ')':
+                # Find the matching opening parenthesis
+                count = 1
+                j = i - 1
+                while j >= 0 and count > 0:
+                    if regex[j] == ')':
+                        count += 1
+                    elif regex[j] == '(':
+                        count -= 1
+                    j -= 1
+                j += 1
+                
+                # Extract the group that the ? applies to
+                group = regex[j:i+1]
+                
+                # Remove outer parentheses if group already has form (expr)
+                if group.startswith('(') and group.endswith(')'):
+                    inner_group = group[1:-1]
+                    # Check if inner_group has balanced parentheses
+                    if isBalanced(inner_group):
+                        # Replace (group)? with (group|ε)
+                        regex = regex[:j] + "(" + inner_group + "|ε)" + regex[i+2:]
+                    else:
+                        # Keep the group as is
+                        regex = regex[:j] + "(" + group + "|ε)" + regex[i+2:]
                 else:
-                    normalized += f"({regex[i]}|ε)"
-                i += 2
+                    # Replace (group)? with (group|ε)
+                    regex = regex[:j] + "(" + group + "|ε)" + regex[i+2:]
+                
+                # Adjust i to account for the new characters
+                i = j + len("(" + inner_group if 'inner_group' in locals() else group + "|ε)")
             else:
-                normalized += regex[i]
-                i += 1
-        # Then normalize the `+`
-        normalized = normalizePlusSign(normalized)
-        return normalized
-    else:
-        normalized = normalizePlusSign(regex)
-        return normalized
-
+                # Single character case: a? becomes (a|ε)
+                char = regex[i]
+                regex = regex[:i] + "(" + char + "|ε)" + regex[i+2:]
+                i += 5  # length of (a|ε)
+        
+        # Process plus operator
+        elif i > 0 and regex[i] == '+':
+            if regex[i-1] == ')':
+                # Find the matching opening parenthesis
+                count = 1
+                j = i - 2
+                while j >= 0 and count > 0:
+                    if regex[j] == ')':
+                        count += 1
+                    elif regex[j] == '(':
+                        count -= 1
+                    j -= 1
+                j += 1
+                
+                # Extract the group that the + applies to
+                group = regex[j:i]
+                
+                # Replace (group)+ with (group)(group)*
+                regex = regex[:j] + group + group + "*" + regex[i+1:]
+                
+                # Adjust i to account for the new characters
+                i = j + len(group) * 2 + 1  # +1 for *
+            else:
+                # Single character case: a+ becomes aa*
+                char = regex[i-1]
+                regex = regex[:i-1] + char + char + "*" + regex[i+1:]
+                i += 1  # advance past the *
+        else:
+            i += 1
     
+    # Simplify redundant expressions
+    regex = simplifyRegex(regex)
+    
+    return regex
 
 def formatRegEx(regex):
     allOperators = ['|', '?', '+', '*', '^']

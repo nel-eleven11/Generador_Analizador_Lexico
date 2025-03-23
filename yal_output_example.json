@@ -19,6 +19,10 @@
         {
             "nombre": "regex5",
             "regex": "0?(1?)?0*"
+        },
+        {
+            "nombre": "regex6",
+            "regex": "((a|b)+)?"
         }
     ]
 }
