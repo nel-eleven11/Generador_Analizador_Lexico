@@ -204,9 +204,16 @@ def formatRegEx(regex):
         c1 = regex[i]
 
         # Handle escaped characters
-        if i < regexLen - 1 and c1 == "\\":
+        if c1 == "\\":
+            # Add the escaped character and the next character
             result += c1 + regex[i + 1]
             i += 2
+
+            # Check if the next character requires concatenation
+            if i < regexLen:
+                c2 = regex[i]
+                if c2 not in closeSymbols and c2 not in allOperators:
+                    result += '~'
             continue
 
         if i + 1 < regexLen:
@@ -298,8 +305,8 @@ test_cases = [
     "-",
     "*",
     "/",
-    "\(",
-    "\)"
+    "\(#",
+    "\)#"
 ]
 
 

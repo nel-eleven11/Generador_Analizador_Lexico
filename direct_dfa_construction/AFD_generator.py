@@ -22,7 +22,6 @@ def getPrecedence(char):
 def infixToPostfix(formattedRegEx):
     openSymbols = ["{", "[", "("]
     closeSymbols = ["}", "]", ")"]
-    keywords = ["if", "else", "com", "net", "org"]
 
     postfix = ""
     stack = []
@@ -34,11 +33,11 @@ def infixToPostfix(formattedRegEx):
 
         # Handle escaped characters
         if char == "\\":
-            postfix += formattedRegEx[i + 1]
+            postfix += char + formattedRegEx[i + 1]  # Add both the escape character and the escaped character
             i += 2
             continue
 
-        elif char.isalnum() or char in 'ε':
+        elif char.isalnum() or char in 'ε#':
             postfix += char
 
         elif char in openSymbols:
@@ -93,8 +92,8 @@ def create_AST_from_combined_postfix():
 
     return ast
 
-def direct_construction_algorithm():
-    ast = create_AST_from_combined_postfix()
+def direct_construction_algorithm(ast):
+    
     ast.add_position_to_leaves()
 
     print("\nCalculating nullability")
@@ -138,6 +137,7 @@ def save_to_pickle(dictionary, filename):
         pickle.dump(dictionary, file)
 
 get_formatted_normalized_expressions("yal_output_example.json")
+ast = create_AST_from_combined_postfix()
 
 #transition_table, acceptance_states = direct_construction_algorithm()
 

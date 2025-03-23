@@ -22,16 +22,31 @@ class AST:
         self.end_state = {}
 
     def postfixToAst(self, postfix):
+        special_simbols = [".", ";", "-"]
         stack = []
+        i = 0
+        postfix_len = len(postfix)
 
-        for char in postfix:
-            if char.isalnum() or char == "ε":
+        while i < postfix_len:
+            char = postfix[i]
+
+            # Handle escaped characters
+            if char == "\\":
+                # Combine the escape character and the next character
+                escaped_char = char + postfix[i + 1]
+                node = ASTNode(escaped_char)
+                stack.append(node)
+                print(f"Found escaped character {escaped_char}, pushing to the stack")
+                i += 2  # Skip the next character
+                continue
+
+            elif char.isalnum() or char == "ε" or char in special_simbols:
                 node = ASTNode(char)
                 stack.append(node)
                 print(f"Found {char}, pushing symbol to the stack")
 
             elif char == "#":
-                # Asignar un identificador unico al #
+                # Asignar un identificador único al #
                 self.regex_counter += 1
                 unique_id = f"#{self.regex_counter}"
                 self.hashtag_id_list.append(unique_id)
@@ -40,18 +55,33 @@ class AST:
                 print(f"Found {char}, assigning unique ID {unique_id}, and pushing to the stack")
 
             elif char in {'|', '~'}:
+                # Binary operators: pop two operands from the stack
+                if len(stack) < 2:
+                    raise ValueError(f"Not enough operands for binary operator {char}")
                 right = stack.pop()
                 left = stack.pop()
                 node = ASTNode(char, left, right)
                 stack.append(node)
-                print(f"Found binary operator {char}, retrieving {right.value} and {left.value}, asigning them to the right and left childs respectively and pushing {char} to the stack")
+                print(f"Found binary operator {char}, retrieving {right.value} and {left.value}, assigning them to the right and left children respectively, and pushing {char} to the stack")
 
             elif char == "*":
+                # Unary operator: pop one operand from the stack
+                if len(stack) < 1:
+                    raise ValueError(f"Not enough operands for unary operator {char}")
                 left = stack.pop()
                 node = ASTNode(char, left)
                 stack.append(node)
-                print(f"Found {char}, retrieving {left.value} and asigning it as left child, then char is pushed to the stack")
-        print("Unique hastag ID's: ", self.hashtag_id_list)
+                print(f"Found {char}, retrieving {left.value} and assigning it as left child, then pushing {char} to the stack")
+
+            else:
+                raise ValueError(f"Unknown character in postfix expression: {char}")
+
+            i += 1
+
+        print("Unique hashtag ID's:", self.hashtag_id_list)
+
+        if len(stack) != 1:
+            raise ValueError("Invalid postfix expression: stack does not contain exactly one element")
 
         return stack.pop()
 
