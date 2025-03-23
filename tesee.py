@@ -3,10 +3,17 @@ def normalizeRegex(regex):
     Normalize a regular expression by converting ? and + operators to their basic forms
     ? becomes (|ε)
     + becomes a copy followed by *
+    Handles escaped operators as literal characters
     """
     # Process the regex character by character
     i = 0
     while i < len(regex):
+        # Handle escaped characters
+        if i < len(regex) - 1 and regex[i] == '\\':
+            # Skip this and the next character (the escaped character)
+            i += 2
+            continue
+
         # Process question mark operator
         if i + 1 < len(regex) and regex[i + 1] == '?':
             # We have a question mark, figure out what it applies to
@@ -15,6 +22,11 @@ def normalizeRegex(regex):
                 count = 1
                 j = i - 1
                 while j >= 0 and count > 0:
+                    if j > 0 and regex[j-1] == '\\':
+                        # Skip escaped parenthesis
+                        j -= 1
+                        continue
+                    
                     if regex[j] == ')':
                         count += 1
                     elif regex[j] == '(':
@@ -40,7 +52,7 @@ def normalizeRegex(regex):
                     regex = regex[:j] + "(" + group + "|ε)" + regex[i+2:]
                 
                 # Adjust i to account for the new characters
-                i = j + len("(" + inner_group if 'inner_group' in locals() else group + "|ε)")
+                i = j + len("(" + (inner_group if 'inner_group' in locals() else group) + "|ε)")
             else:
                 # Single character case: a? becomes (a|ε)
                 char = regex[i]
@@ -48,12 +60,34 @@ def normalizeRegex(regex):
                 i += 5  # length of (a|ε)
         
         # Process plus operator
-        elif i > 0 and regex[i] == '+':
+        elif i > 0 and regex[i] == '+' and (i <= 1 or regex[i-2] != '\\'):
+            # Make sure this is an operator + and not a literal '+'
+            # Check if we're in a set of conditions where + is a standalone character
+            is_standalone = False
+            
+            # Check for cases like "E(+|-)" where + is a literal character
+            if i > 1 and regex[i-1] == '(' and i+2 < len(regex) and regex[i+1] == '|' and regex[i+2] != ')':
+                is_standalone = True
+            
+            # Check for cases like =, +, - where + is a token
+            if i == 0 or (i > 0 and regex[i-1] in ['"', ',', ' ', ';', '\n']):
+                is_standalone = True
+            
+            # If it's a standalone +, don't process it as an operator
+            if is_standalone:
+                i += 1
+                continue
+            
             if regex[i-1] == ')':
                 # Find the matching opening parenthesis
                 count = 1
                 j = i - 2
                 while j >= 0 and count > 0:
+                    if j > 0 and regex[j-1] == '\\':
+                        # Skip escaped parenthesis
+                        j -= 1
+                        continue
+                        
                     if regex[j] == ')':
                         count += 1
                     elif regex[j] == '(':
@@ -83,15 +117,22 @@ def normalizeRegex(regex):
     return regex
 
 def isBalanced(expr):
-    """Check if an expression has balanced parentheses"""
+    """Check if an expression has balanced parentheses, ignoring escaped ones"""
     stack = []
-    for char in expr:
-        if char == '(':
-            stack.append(char)
-        elif char == ')':
-            if not stack or stack[-1] != '(':
+    i = 0
+    while i < len(expr):
+        # Skip escaped characters
+        if i < len(expr) - 1 and expr[i] == '\\':
+            i += 2
+            continue
+            
+        if expr[i] == '(':
+            stack.append(expr[i])
+        elif expr[i] == ')':
+            if not stack:
                 return False
             stack.pop()
+        i += 1
     return len(stack) == 0
 
 def simplifyRegex(regex):
@@ -102,18 +143,28 @@ def simplifyRegex(regex):
         i = 0
         simplified = False
         while i < len(regex):
-            if regex[i:i+2] == '((':
+            # Skip escaped characters
+            if i < len(regex) - 1 and regex[i] == '\\':
+                i += 2
+                continue
+                
+            if i + 1 < len(regex) and regex[i:i+2] == '((':
                 # Find the matching closing parentheses
                 open_count = 2
                 j = i + 2
                 while j < len(regex) and open_count > 0:
+                    # Skip escaped parentheses
+                    if j < len(regex) - 1 and regex[j] == '\\':
+                        j += 2
+                        continue
+                        
                     if regex[j] == '(':
                         open_count += 1
                     elif regex[j] == ')':
                         open_count -= 1
                     j += 1
                 
-                if j < len(regex) and regex[j-2:j] == '))':
+                if j <= len(regex) and j >= 2 and regex[j-2:j] == '))':
                     # Found a pattern like ((expr))
                     inner_expr = regex[i+1:j-1]
                     if isBalanced(inner_expr):
@@ -152,16 +203,16 @@ def formatRegEx(regex):
     while i < regexLen:
         c1 = regex[i]
 
+        # Handle escaped characters
+        if i < regexLen - 1 and c1 == "\\":
+            result += c1 + regex[i + 1]
+            i += 2
+            continue
+
         if i + 1 < regexLen:
             c2 = regex[i + 1]
 
             result += c1
-
-            # Check for escaped characters
-            if c1 == "\\":
-                result += c2
-                i += 2
-                continue
 
             # Add concatenation operator where needed
             if (c1 not in openSymbols and c1 not in binaryOperators) and \
@@ -175,20 +226,27 @@ def formatRegEx(regex):
     return result
 
 def validateParentheses(regex):
-    """Validate that parentheses are correctly balanced in the regex"""
+    """Validate that parentheses are correctly balanced in the regex, ignoring escaped ones"""
     stack = []
-    for i, char in enumerate(regex):
-        if char in '([{':
-            stack.append(char)
-        elif char in ')]}':
+    i = 0
+    while i < len(regex):
+        # Skip escaped characters
+        if i < len(regex) - 1 and regex[i] == '\\':
+            i += 2
+            continue
+            
+        if regex[i] in '([{':
+            stack.append(regex[i])
+        elif regex[i] in ')]}':
             if not stack:
                 return False, f"Unmatched closing symbol at position {i}"
             
             opening = stack.pop()
-            if (opening == '(' and char != ')') or \
-               (opening == '[' and char != ']') or \
-               (opening == '{' and char != '}'):
-                return False, f"Mismatched symbols: '{opening}' and '{char}' at position {i}"
+            if (opening == '(' and regex[i] != ')') or \
+               (opening == '[' and regex[i] != ']') or \
+               (opening == '{' and regex[i] != '}'):
+                return False, f"Mismatched symbols: '{opening}' and '{regex[i]}' at position {i}"
+        i += 1
     
     if stack:
         return False, f"Unmatched opening symbols: {stack}"
@@ -201,34 +259,49 @@ def testNormalization(test_cases):
     
     for regex in test_cases:
         print(f"\nTesting regex: {regex}")
-        normalized = normalizeRegex(regex)
-        formatted = formatRegEx(normalized)
-        valid, message = validateParentheses(normalized)
-        
-        print(f"Original: {regex}")
-        print(f"Normalized: {normalized}")
-        print(f"Formatted: {formatted}")
-        print(f"Parentheses validation: {message}")
-        
-        results.append({
-            "original": regex,
-            "normalized": normalized,
-            "formatted": formatted,
-            "valid": valid,
-            "message": message
-        })
+        try:
+            normalized = normalizeRegex(regex)
+            formatted = formatRegEx(normalized)
+            valid, message = validateParentheses(normalized)
+            
+            print(f"Original: {regex}")
+            print(f"Normalized: {normalized}")
+            print(f"Formatted: {formatted}")
+            print(f"Parentheses validation: {message}")
+            
+            results.append({
+                "original": regex,
+                "normalized": normalized,
+                "formatted": formatted,
+                "valid": valid,
+                "message": message
+            })
+        except Exception as e:
+            print(f"Error processing regex '{regex}': {str(e)}")
+            results.append({
+                "original": regex,
+                "error": str(e)
+            })
     
     return results
 
 # Example usage
 test_cases = [
-    "(a|b)*abb",
-    "ab?",
-    "a?b+",
-    "(a*|b*)+",
-    "0?(1?)?0*",
-    "((a|b)+)?"
+    "(ε|\t|\n)+",
+    "(A|B|C|D|E|F|G|H|I|J|K|L|M|N|O|P|Q|R|S|T|U|V|W|X|Y|Z|a|b|c|d|e|f|g|h|i|j|k|l|m|n|o|p|q|r|s|t|u|v|w|x|y|z)((A|B|C|D|E|F|G|H|I|J|K|L|M|N|O|P|Q|R|S|T|U|V|W|X|Y|Z|a|b|c|d|e|f|g|h|i|j|k|l|m|n|o|p|q|r|s|t|u|v|w|x|y|z)|(_)*|(0|1|2|3|4|5|6|7|8|9))*",
+    "(0|1|2|3|4|5|6|7|8|9)+(.(0|1|2|3|4|5|6|7|8|9)+)?(E(\+|-)?(0|1|2|3|4|5|6|7|8|9)+)",
+    ";",
+    ":=",
+    "<",
+    "=",
+    "+",
+    "-",
+    "*",
+    "/",
+    "\(",
+    "\)"
 ]
+
 
 # Run the test
 testNormalization(test_cases)

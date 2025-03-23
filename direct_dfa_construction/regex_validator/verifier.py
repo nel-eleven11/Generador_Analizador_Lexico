@@ -1,4 +1,22 @@
 import json
+def isBalanced(expr):
+    """Check if an expression has balanced parentheses, ignoring escaped ones"""
+    stack = []
+    i = 0
+    while i < len(expr):
+        # Skip escaped characters
+        if i < len(expr) - 1 and expr[i] == '\\':
+            i += 2
+            continue
+            
+        if expr[i] == '(':
+            stack.append(expr[i])
+        elif expr[i] == ')':
+            if not stack:
+                return False
+            stack.pop()
+        i += 1
+    return len(stack) == 0
 
 def simplifyRegex(regex):
     """Simplify redundant expressions in the regex"""
@@ -53,52 +71,23 @@ def stackTopMatchesSimbol(char, stack):
         return True
     return False
 
-# Method to determine if a expression is balanced
-def expressionIsBalanced(regex):
+def validateParentheses(expr):
+    """Check if an expression has balanced parentheses, ignoring escaped ones"""
     stack = []
-    charList = list(regex)
-    
-    openSimbols = ["{", "[", "("]
-    closeSimbols = ["}", "]", ")"]
-    
-    # Iterating on each character of a regex
-    for char in charList:
-        # Checking if the symbol is an open bracket
-        if char in openSimbols:
-            stack.append(char)
-            print(f"Added {char} to stack: {stack}")
-        # And here if its a closed bracket
-        elif char in closeSimbols:
-            # If stack is empty (no corresponding opening bracket is found) 
-            if len(stack) == 0:
-                print(f"Found {char} but stack is empty: {stack}")
-                return False
-            # If it is not empty and also the top of the stack is a matching opening bracket for the current closing bracket
-            elif stackTopMatchesSimbol(char, stack):
-                popped = stack.pop()
-                print(f"Matching {char} with {popped}, stack after pop: {stack}")
-            # If the top of the stack does not match the closing bracket
-            elif not stackTopMatchesSimbol(char, stack):
-                print(f"Found {char} but top of stack {stack[-1]} does not match: {stack}")
-                return False
-    
-    if len(stack) == 0:
-        print(f"Stack is empty after processing all characters: {stack}")
-        return True
-    else:
-        print(f"Stack is not empty after processing all characters: {stack}")
-        return False
-
-def isBalanced(expr):
-    """Check if an expression has balanced parentheses"""
-    stack = []
-    for char in expr:
-        if char == '(':
-            stack.append(char)
-        elif char == ')':
-            if not stack or stack[-1] != '(':
+    i = 0
+    while i < len(expr):
+        # Skip escaped characters
+        if i < len(expr) - 1 and expr[i] == '\\':
+            i += 2
+            continue
+            
+        if expr[i] == '(':
+            stack.append(expr[i])
+        elif expr[i] == ')':
+            if not stack:
                 return False
             stack.pop()
+        i += 1
     return len(stack) == 0
 
 def normalizeRegex(regex):
@@ -106,10 +95,17 @@ def normalizeRegex(regex):
     Normalize a regular expression by converting ? and + operators to their basic forms
     ? becomes (|ε)
     + becomes a copy followed by *
+    Handles escaped operators as literal characters
     """
     # Process the regex character by character
     i = 0
     while i < len(regex):
+        # Handle escaped characters
+        if i < len(regex) - 1 and regex[i] == '\\':
+            # Skip this and the next character (the escaped character)
+            i += 2
+            continue
+
         # Process question mark operator
         if i + 1 < len(regex) and regex[i + 1] == '?':
             # We have a question mark, figure out what it applies to
@@ -118,6 +114,11 @@ def normalizeRegex(regex):
                 count = 1
                 j = i - 1
                 while j >= 0 and count > 0:
+                    if j > 0 and regex[j-1] == '\\':
+                        # Skip escaped parenthesis
+                        j -= 1
+                        continue
+                    
                     if regex[j] == ')':
                         count += 1
                     elif regex[j] == '(':
@@ -143,7 +144,7 @@ def normalizeRegex(regex):
                     regex = regex[:j] + "(" + group + "|ε)" + regex[i+2:]
                 
                 # Adjust i to account for the new characters
-                i = j + len("(" + inner_group if 'inner_group' in locals() else group + "|ε)")
+                i = j + len("(" + (inner_group if 'inner_group' in locals() else group) + "|ε)")
             else:
                 # Single character case: a? becomes (a|ε)
                 char = regex[i]
@@ -151,12 +152,34 @@ def normalizeRegex(regex):
                 i += 5  # length of (a|ε)
         
         # Process plus operator
-        elif i > 0 and regex[i] == '+':
+        elif i > 0 and regex[i] == '+' and (i <= 1 or regex[i-2] != '\\'):
+            # Make sure this is an operator + and not a literal '+'
+            # Check if we're in a set of conditions where + is a standalone character
+            is_standalone = False
+            
+            # Check for cases like "E(+|-)" where + is a literal character
+            if i > 1 and regex[i-1] == '(' and i+2 < len(regex) and regex[i+1] == '|' and regex[i+2] != ')':
+                is_standalone = True
+            
+            # Check for cases like =, +, - where + is a token
+            if i == 0 or (i > 0 and regex[i-1] in ['"', ',', ' ', ';', '\n']):
+                is_standalone = True
+            
+            # If it's a standalone +, don't process it as an operator
+            if is_standalone:
+                i += 1
+                continue
+            
             if regex[i-1] == ')':
                 # Find the matching opening parenthesis
                 count = 1
                 j = i - 2
                 while j >= 0 and count > 0:
+                    if j > 0 and regex[j-1] == '\\':
+                        # Skip escaped parenthesis
+                        j -= 1
+                        continue
+                        
                     if regex[j] == ')':
                         count += 1
                     elif regex[j] == '(':
@@ -181,11 +204,12 @@ def normalizeRegex(regex):
             i += 1
     
     # Simplify redundant expressions
-    regex = simplifyRegex(regex)
+    # regex = simplifyRegex(regex)
     
     return regex
 
 def formatRegEx(regex):
+    """Format a regular expression by adding concatenation operators (~)"""
     allOperators = ['|', '?', '+', '*', '^']
     binaryOperators = ['^', '|']
     openSymbols = ["{", "[", "("]
@@ -198,18 +222,20 @@ def formatRegEx(regex):
     while i < regexLen:
         c1 = regex[i]
 
+        # Handle escaped characters
+        if i < regexLen - 1 and c1 == "\\":
+            result += c1 + regex[i + 1]
+            i += 2
+            continue
+
         if i + 1 < regexLen:
             c2 = regex[i + 1]
 
             result += c1
 
-            # Check for escaped characters
-            if c1 == "\\":
-                result += c2
-                i += 2
-                continue
-
-            if c1 not in openSymbols and c2 not in closeSymbols and c2 not in allOperators and c1 not in binaryOperators:
+            # Add concatenation operator where needed
+            if (c1 not in openSymbols and c1 not in binaryOperators) and \
+               (c2 not in closeSymbols and c2 not in allOperators):
                 result += '~'
         else:
             result += c1
@@ -236,7 +262,7 @@ def get_formatted_normalized_expressions(file):
         regex = token.get('regex')
         exp = regex.replace(" ", "")
 
-        if expressionIsBalanced(exp):
+        if validateParentheses(exp):
                 #its necesarry to concatenate the # at the end firs before starting to process the regex
                 originalExpression.append(exp)
 
