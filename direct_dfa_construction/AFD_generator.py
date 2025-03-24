@@ -71,6 +71,7 @@ def create_AST_from_combined_postfix():
 
     final_regex = combine_formatted_regex(formatted_normalized_exp) 
 
+
     # WHen is say normalized i refer to translating an expression like ab? to a(b|ε)
     # That way we only have the core regex simbols |, *, + and concatenation (~)
     print("Exprossions are formatted as follows: OriginalRegex --> NormalizedRegex --> postfixRegex" )
@@ -136,10 +137,9 @@ def save_to_pickle(dictionary, filename):
     with open(filename, 'wb') as file:
         pickle.dump(dictionary, file)
 
-get_formatted_normalized_expressions("yal_output_example.json")
+#ast = get_formatted_normalized_expressions("yal_output_example.json")
 ast = create_AST_from_combined_postfix()
-
-#transition_table, acceptance_states = direct_construction_algorithm()
+transition_table, acceptance_states = direct_construction_algorithm(ast)
 
 #save_to_json(transition_table, "transition_table.json")
 #save_to_json(acceptance_states, "acceptance_states.json")

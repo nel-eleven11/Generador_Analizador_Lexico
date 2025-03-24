@@ -22,7 +22,10 @@ class AST:
         self.end_state = {}
 
     def postfixToAst(self, postfix):
-        special_simbols = [".", ";", ":", "=", "-", "<", "+", "_", "\t", "\n", "/"]
+        #reserved simbols, that will help later in some validations
+        
+        operators_and_reserved = {'|', '~', '*', '#', 'ε'}
+
         stack = []
         i = 0
         postfix_len = len(postfix)
@@ -40,7 +43,8 @@ class AST:
                 i += 2  # Skip the next character
                 continue
 
-            elif char.isalnum() or char == "ε" or char in special_simbols:
+            # Handle alphanumeric characters, epsilon, and special characters
+            elif char.isalnum() or char == "ε" or char not in operators_and_reserved:
                 node = ASTNode(char)
                 stack.append(node)
                 print(f"Found {char}, pushing symbol to the stack")
@@ -132,11 +136,8 @@ class AST:
                     if root.value in self.hashtag_id_list:
                         self.end_state[root.value] = root.position  # Usamos un diccionario para mapear #_i a su posición
                     
-
                     print(f"{root.value},{root.position}", end = " ")
 
-                
-                
                 return
 
             # If left child exists, 
@@ -435,11 +436,3 @@ class AST:
                     acceptance_states[index] = hashtag_id  # Mapeamos el estado al identificador del #
 
         return transition_table, acceptance_states
-
-
-
-
-
-
-
-
