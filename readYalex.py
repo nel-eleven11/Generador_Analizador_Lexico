@@ -11,6 +11,8 @@ Archivo:
 
 import json
 
+special_chars = set("+*()[]{}?~")
+
 class readYalex:
     def __init__(self, yalex_file):
         self.yalex_file = yalex_file
@@ -26,6 +28,16 @@ class readYalex:
 
 def unescape_string(s):
     return s.encode('utf-8').decode('unicode_escape')
+
+# Función auxiliar para procesar caracteres especiales
+def process_special_chars(s):
+    new_s = ""
+    for ch in s:
+        if ch in special:
+            new_s += "\\\\" + ch  # Agrega dos barras invertidas antes del carácter
+        else:
+            new_s += ch
+    return new_s 
 
 def read_group(entrada, index, open_char, close_char):
     """
@@ -61,7 +73,10 @@ def read_quoted(entrada, index):
     #token += quote_char
     index += 1
     while index < len(entrada) and entrada[index] != quote_char:
-        token += entrada[index]
+        if entrada[index] in special_chars:
+            token += process_special_chars(entrada[index])
+        else:
+            token += entrada[index]
         index += 1
     if index < len(entrada):
         #token += entrada[index]
@@ -331,6 +346,7 @@ def parse_bracket(expr, i):
     transformed = "(" + "|".join(alternatives) + ")"
     return transformed, i
 
+
 def transform_brackets(expr):
     """
     Procesa la expresión expr y reemplaza cada grupo entre corchetes [ ... ]
@@ -339,7 +355,7 @@ def transform_brackets(expr):
     result = ""
     i = 0
     while i < len(expr):
-        if expr[i] == '[':
+        if (expr[i] == '[') and (expr[i-1] != '\\'):
             trans, i = parse_bracket(expr, i)
             result += trans
         else:
