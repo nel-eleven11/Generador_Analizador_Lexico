@@ -1,29 +1,69 @@
 {
   "tokens": [
     {
-      "nombre": "regex1",
-      "regex": "(a|b)*~a~b~b~#",
+      "nombre": "ws",
+      "regex": "( |\t|\n)~( |\t|\n)*~#",
       "id": "#1"
     },
     {
-      "nombre": "regex2",
-      "regex": "a~(b|ε)~#",
+      "nombre": "ID",
+      "regex": "(A|B|C|D|E|F|G|H|I|J|K|L|M|N|O|P|Q|R|S|T|U|V|W|X|Y|Z|a|b|c|d|e|f|g|h|i|j|k|l|m|n|o|p|q|r|s|t|u|v|w|x|y|z)~((A|B|C|D|E|F|G|H|I|J|K|L|M|N|O|P|Q|R|S|T|U|V|W|X|Y|Z|a|b|c|d|e|f|g|h|i|j|k|l|m|n|o|p|q|r|s|t|u|v|w|x|y|z)|(_)*|(0|1|2|3|4|5|6|7|8|9))*~#",
       "id": "#2"
     },
     {
-      "nombre": "regex3",
-      "regex": "(a|ε)~b~b*~#",
+      "nombre": "NUMBER",
+      "regex": "(0|1|2|3|4|5|6|7|8|9)~(0|1|2|3|4|5|6|7|8|9)*~(.~(0|1|2|3|4|5|6|7|8|9)~(0|1|2|3|4|5|6|7|8|9)*|ε)~(E~(\\+|-|ε)~(0|1|2|3|4|5|6|7|8|9)~(0|1|2|3|4|5|6|7|8|9)*)~#",
       "id": "#3"
     },
     {
-      "nombre": "regex4",
-      "regex": "(a*|b*)~(a*|b*)*~#",
+      "nombre": "SEMICOLON",
+      "regex": ";~#",
       "id": "#4"
     },
     {
-      "nombre": "regex5",
-      "regex": "(0|ε)~((1|ε)|ε)~0*~#",
+      "nombre": "ASSIGNOP",
+      "regex": ":~=~#",
       "id": "#5"
+    },
+    {
+      "nombre": "LT",
+      "regex": "<~#",
+      "id": "#6"
+    },
+    {
+      "nombre": "EQ",
+      "regex": "=~#",
+      "id": "#7"
+    },
+    {
+      "nombre": "PLUS",
+      "regex": "+~#",
+      "id": "#8"
+    },
+    {
+      "nombre": "MINUS",
+      "regex": "-~#",
+      "id": "#9"
+    },
+    {
+      "nombre": "TIMES",
+      "regex": "\\*~#",
+      "id": "#10"
+    },
+    {
+      "nombre": "DIV",
+      "regex": "/~#",
+      "id": "#11"
+    },
+    {
+      "nombre": "LPAREN",
+      "regex": "\\(~#",
+      "id": "#12"
+    },
+    {
+      "nombre": "RPAREN",
+      "regex": "\\)~#",
+      "id": "#13"
     }
   ]
 }

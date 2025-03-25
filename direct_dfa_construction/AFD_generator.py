@@ -137,6 +137,7 @@ def save_to_pickle(dictionary, filename):
     with open(filename, 'wb') as file:
         pickle.dump(dictionary, file)
 
+
 #ast = get_formatted_normalized_expressions("yal_output_example.json")
 ast = create_AST_from_combined_postfix()
 transition_table, acceptance_states = direct_construction_algorithm(ast)
