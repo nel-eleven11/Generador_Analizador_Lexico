@@ -22,16 +22,35 @@ class AST:
         self.end_state = {}
 
     def postfixToAst(self, postfix):
-        stack = []
+        #reserved simbols, that will help later in some validations
+        
+        operators_and_reserved = {'|', '~', '*', '#', 'ε'}
 
-        for char in postfix:
-            if char.isalnum() or char == "ε":
+        stack = []
+        i = 0
+        postfix_len = len(postfix)
+
+        while i < postfix_len:
+            char = postfix[i]
+
+            # Handle escaped characters
+            if char == "\\":
+                # Combine the escape character and the next character
+                escaped_char = char + postfix[i + 1]
+                node = ASTNode(escaped_char)
+                stack.append(node)
+                print(f"Found escaped character {escaped_char}, pushing to the stack")
+                i += 2  # Skip the next character
+                continue
+
+            # Handle alphanumeric characters, epsilon, and special characters
+            elif char.isalnum() or char == "ε" or char not in operators_and_reserved:
                 node = ASTNode(char)
                 stack.append(node)
                 print(f"Found {char}, pushing symbol to the stack")
 
             elif char == "#":
-                # Asignar un identificador unico al #
+                # Asignar un identificador único al #
                 self.regex_counter += 1
                 unique_id = f"#{self.regex_counter}"
                 self.hashtag_id_list.append(unique_id)
@@ -40,18 +59,33 @@ class AST:
                 print(f"Found {char}, assigning unique ID {unique_id}, and pushing to the stack")
 
             elif char in {'|', '~'}:
+                # Binary operators: pop two operands from the stack
+                if len(stack) < 2:
+                    raise ValueError(f"Not enough operands for binary operator {char}")
                 right = stack.pop()
                 left = stack.pop()
                 node = ASTNode(char, left, right)
                 stack.append(node)
-                print(f"Found binary operator {char}, retrieving {right.value} and {left.value}, asigning them to the right and left childs respectively and pushing {char} to the stack")
+                print(f"Found binary operator {char}, retrieving {right.value} and {left.value}, assigning them to the right and left children respectively, and pushing {char} to the stack")
 
             elif char == "*":
+                # Unary operator: pop one operand from the stack
+                if len(stack) < 1:
+                    raise ValueError(f"Not enough operands for unary operator {char}")
                 left = stack.pop()
                 node = ASTNode(char, left)
                 stack.append(node)
-                print(f"Found {char}, retrieving {left.value} and asigning it as left child, then char is pushed to the stack")
-        print("Unique hastag ID's: ", self.hashtag_id_list)
+                print(f"Found {char}, retrieving {left.value} and assigning it as left child, then pushing {char} to the stack")
+
+            else:
+                raise ValueError(f"Unknown character in postfix expression: {char}")
+
+            i += 1
+
+        print("Unique hashtag ID's:", self.hashtag_id_list)
+
+        if len(stack) != 1:
+            raise ValueError("Invalid postfix expression: stack does not contain exactly one element")
 
         return stack.pop()
 
@@ -102,11 +136,8 @@ class AST:
                     if root.value in self.hashtag_id_list:
                         self.end_state[root.value] = root.position  # Usamos un diccionario para mapear #_i a su posición
                     
-
                     print(f"{root.value},{root.position}", end = " ")
 
-                
-                
                 return
 
             # If left child exists, 
@@ -314,102 +345,101 @@ class AST:
                 return index
         
         return ""
+    
+    def clean_transition_symbol(self, symbol):
+        # Diccionario de caracteres especiales que deben conservarse
+        special_chars = {
+            't': '\t',
+            'n': '\n',
+            'r': '\r',
+            '\\': '\\'  
+        }
+        
+        # escaped chars
+        if len(symbol) > 1 and symbol[0] == '\\':
+            char = symbol[1]
+           
+            if char in special_chars:
+                return special_chars[char]
+            
+            return char
+       
+        return symbol
+    
+        
+    def clean_transition_table(self, transition_table):
+        cleaned_table = {}
+        for state, data in transition_table.items():
+            cleaned_transitions = {}
+            for symbol, target in data['transitions'].items():
+                cleaned_symbol = self.clean_transition_symbol(symbol)
+                cleaned_transitions[cleaned_symbol] = target
+            cleaned_table[state] = {
+                'positions': data['positions'],
+                'transitions': cleaned_transitions
+            }
+        return cleaned_table
         
     def nextPos_table_to_transition_table(self):
-
-        # the table format is like this { 1: {'value': 'a', 'nextPos': {1,2,3}, ... }
-        # this means that leaf 1 has a value of a and a nextPos set of {1,2,3}
         np_table = self.nextPosTable
-        # states will have numbers as labels.
-        state_counter = 0
-        next_node_counter = 1
-
-        # the ransition wil be a dictionary of dictionaries
-        # the first key will be the number of the node and the value will be its transitions
-        # so { 0: {positions:{1,2,3} transitions: {a: 2, b: 1} } } means state 0, has the positions {1,2,3} from the ast
-        # and taht with "a" moves to state 2, and with "b" moves to state 1 (POSITIONS and states are not the same)
         transition_table = {}
-
-        # where al subsets that we found are stored
-        all_sets = set()
-        #to check wich states we already evaluated
-        evaluated_sets = set()
-
-        # initial state is firstPos of root
-        inital_set = self.root.firstPos
-        all_sets.add(frozenset(inital_set))
-        non_evaluated_sets = all_sets - evaluated_sets
-
-        transition_table[state_counter] = {"positions": inital_set, "transitions": {}}
-
-        while non_evaluated_sets != set():
-
-            selected_set = next(iter(non_evaluated_sets))
-
-            # for each letter in the alphabet
-            for char in self.alphabet:
-
-                print(f"Currently testing set {set(selected_set)}, with alphabet: {char}")
-
-                union_sigPos = set()
-
-                for position in selected_set:
-
+        state_counter = 0
+        
+        # Usin a dictionary to track unique sets with consistent mapping
+        set_to_state = {}
+        
+        # Initial state is firstPos of root
+        initial_set = frozenset(self.root.firstPos)
+        set_to_state[initial_set] = state_counter
+        transition_table[state_counter] = {
+            "positions": set(initial_set), 
+            "transitions": {}
+        }
+        
+        # Queue for sets to process (guaranteed order)
+        sets_to_process = [initial_set]
+        processed_sets = set([initial_set])
+        
+        while sets_to_process:
+            current_set = sets_to_process.pop(0)
+            current_state = set_to_state[current_set]
+            
+            # Process each alphabet symbol Sortning for consistency
+            for char in sorted(self.alphabet):  
+                next_set_positions = set()
+                
+                for position in current_set:
                     if np_table[position]["value"] == char:
-                        union_sigPos.update(np_table[position]["nextPos"])
-
-                # Here is the point when a node does not have a transition with letter of the alphabet.
-                # dead states can be implemented here also, but for simplicity of the DFA drawing we are skiping if the 
-                # node does not have transitions with a specific alphabet letter
-                if not union_sigPos:
-                    print(f"No valid transition for ({state_counter},{char}) -> empty set")
-                    continue 
-
-                # now we have to check if said set already exists 
-
-                found_alias = self.getAlias(transition_table, union_sigPos)
-
-                if found_alias == "":
-
-                    print(f"There is no set with positions {set(union_sigPos)}, ({state_counter},{char}) -> {union_sigPos} so we asign = {next_node_counter}")
-                    #add transition to the tstae we are evaluating (1,a) -> 2, on state 1 with a we move to 2 for example
-                    transition_table[state_counter]["positions"] = set(selected_set)
-                    transition_table[state_counter]["transitions"][char] = next_node_counter
-
-                    #adding the newly found set to our set of all sets
-                    all_sets.add(frozenset(union_sigPos))
-                    # now adding it to the transition table
-                    transition_table[next_node_counter] = {"positions": set(union_sigPos), "transitions": {}}
-                    #adding in case a new set is found
-                    next_node_counter += 1
+                        next_set_positions.update(np_table[position]["nextPos"])
                 
-                else:
-                    print(f"There is already a set with positions {set(union_sigPos)}, ({state_counter},{char}) -> {union_sigPos} = {found_alias}")
-                    transition_table[state_counter]["transitions"][char] = int(found_alias)
+                if not next_set_positions:
+                    continue
                 
-            evaluated_sets.add(frozenset(selected_set))
-            non_evaluated_sets = all_sets - evaluated_sets
-
-            state_counter += 1
-
-            print("\n")
-
+                next_set = frozenset(next_set_positions)
+                
+                # Determine if this set of positions has been seen before
+                if next_set not in set_to_state:
+                    state_counter += 1
+                    set_to_state[next_set] = state_counter
+                    transition_table[state_counter] = {
+                        "positions": set(next_set), 
+                        "transitions": {}
+                    }
+                    sets_to_process.append(next_set)
+                    processed_sets.add(next_set)
+                
+                # Add transition
+                transition_table[current_state]["transitions"][char] = set_to_state[next_set]
+        
+        # Identify acceptance states 
         acceptance_states = {}
-
-        for index, values in transition_table.items():
-            print(index, values)
-
-            for hashtag_id, position in self.end_state.items():
-                if position in values["positions"]:
-                    print(f"State {index} is acceptance for {hashtag_id}")
-                    acceptance_states[index] = hashtag_id  # Mapeamos el estado al identificador del #
-
-        return transition_table, acceptance_states
-
-
-
-
-
-
-
-
+        for state, data in transition_table.items():
+            accepting_for = [
+                hashtag_id for hashtag_id, position in self.end_state.items() 
+                if position in data["positions"]
+            ]
+            if accepting_for:
+                acceptance_states[state] = accepting_for
+        
+        clean_table = self.clean_transition_table(transition_table)
+        return clean_table, acceptance_states

@@ -22,7 +22,6 @@ def getPrecedence(char):
 def infixToPostfix(formattedRegEx):
     openSymbols = ["{", "[", "("]
     closeSymbols = ["}", "]", ")"]
-    keywords = ["if", "else", "com", "net", "org"]
 
     postfix = ""
     stack = []
@@ -32,27 +31,13 @@ def infixToPostfix(formattedRegEx):
     while i < regexLen:
         char = formattedRegEx[i]
 
-        # Handle keywords like 'if' and 'else'
-        if char.isalpha():
-            keyword = ""
-            while i < regexLen and formattedRegEx[i].isalpha():
-                keyword += formattedRegEx[i]
-                i += 1
-            if keyword in keywords:
-                postfix += keyword
-                continue
-            else:
-                postfix += keyword
-                char = ''
-                i -= 1
-
         # Handle escaped characters
-        elif char == "\\":
-            postfix += formattedRegEx[i + 1]
+        if char == "\\":
+            postfix += char + formattedRegEx[i + 1]  # Add both the escape character and the escaped character
             i += 2
             continue
 
-        elif char.isalnum() or char in 'ε':
+        elif char.isalnum() or char in 'ε#':
             postfix += char
 
         elif char in openSymbols:
@@ -86,7 +71,6 @@ def create_AST_from_combined_postfix():
 
     final_regex = combine_formatted_regex(formatted_normalized_exp) 
 
-    print("\nWelcome, which expression do you want to test?")
 
     # WHen is say normalized i refer to translating an expression like ab? to a(b|ε)
     # That way we only have the core regex simbols |, *, + and concatenation (~)
@@ -109,8 +93,8 @@ def create_AST_from_combined_postfix():
 
     return ast
 
-def direct_construction_algorithm():
-    ast = create_AST_from_combined_postfix()
+def direct_construction_algorithm(ast):
+    
     ast.add_position_to_leaves()
 
     print("\nCalculating nullability")
@@ -153,10 +137,12 @@ def save_to_pickle(dictionary, filename):
     with open(filename, 'wb') as file:
         pickle.dump(dictionary, file)
 
-transition_table, acceptance_states = direct_construction_algorithm()
+#ast = get_formatted_normalized_expressions("yal_output_example.json")
+ast = create_AST_from_combined_postfix()
+transition_table, acceptance_states = direct_construction_algorithm(ast)
 
-save_to_json(transition_table, "transition_table.json")
-save_to_json(acceptance_states, "acceptance_states.json")
+#save_to_json(transition_table, "transition_table.json")
+#save_to_json(acceptance_states, "acceptance_states.json")
 
-save_to_pickle(transition_table, "transition_table.pkl")
-save_to_pickle(acceptance_states, "acceptance_states.pkl")
+#save_to_pickle(transition_table, "transition_table.pkl")
+#save_to_pickle(acceptance_states, "acceptance_states.pkl")
