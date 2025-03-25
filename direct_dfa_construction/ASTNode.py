@@ -345,6 +345,40 @@ class AST:
                 return index
         
         return ""
+    
+    def clean_transition_symbol(self, symbol):
+        # Diccionario de caracteres especiales que deben conservarse
+        special_chars = {
+            't': '\t',
+            'n': '\n',
+            'r': '\r',
+            '\\': '\\'  
+        }
+        
+        # escaped chars
+        if len(symbol) > 1 and symbol[0] == '\\':
+            char = symbol[1]
+           
+            if char in special_chars:
+                return special_chars[char]
+            
+            return char
+       
+        return symbol
+    
+        
+    def clean_transition_table(self, transition_table):
+        cleaned_table = {}
+        for state, data in transition_table.items():
+            cleaned_transitions = {}
+            for symbol, target in data['transitions'].items():
+                cleaned_symbol = self.clean_transition_symbol(symbol)
+                cleaned_transitions[cleaned_symbol] = target
+            cleaned_table[state] = {
+                'positions': data['positions'],
+                'transitions': cleaned_transitions
+            }
+        return cleaned_table
         
     def nextPos_table_to_transition_table(self):
 
@@ -429,10 +463,21 @@ class AST:
 
         for index, values in transition_table.items():
             print(index, values)
-
+            
+            # Lista para almacenar todos los # que hacen este estado de aceptación
+            accepting_for = []
+            
             for hashtag_id, position in self.end_state.items():
                 if position in values["positions"]:
                     print(f"State {index} is acceptance for {hashtag_id}")
-                    acceptance_states[index] = hashtag_id  # Mapeamos el estado al identificador del #
+                    accepting_for.append(hashtag_id)
+            
+            # Solo agregamos el estado si es de aceptación para al menos un #
+            if accepting_for:
+                acceptance_states[index] = accepting_for
+                
+        print("transition table: ", transition_table)
 
-        return transition_table, acceptance_states
+        clean_table = self.clean_transition_table(transition_table)
+
+        return clean_table, acceptance_states
