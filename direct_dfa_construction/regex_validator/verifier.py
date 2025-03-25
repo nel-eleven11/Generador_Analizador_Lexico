@@ -286,7 +286,8 @@ def get_formatted_normalized_expressions(file):
                 print(f"Normalized Expression: {normalized_regex}")
                 print(f"Formatted Expression: {formatted_normalized_regex}")
 
-                output_file="final_regex_example.json"
+                #original "final_regex_example.json"
+                output_file="final_out_test.json"
                 with open(output_file, "w", encoding="utf-8") as outfile:
                     json.dump({"tokens": output_tokens}, outfile, indent=2, ensure_ascii=False)
 

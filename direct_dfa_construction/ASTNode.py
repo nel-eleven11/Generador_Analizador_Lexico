@@ -381,11 +381,10 @@ class AST:
         return cleaned_table
         
     def nextPos_table_to_transition_table(self):
-
         # the table format is like this { 1: {'value': 'a', 'nextPos': {1,2,3}, ... }
         # this means that leaf 1 has a value of a and a nextPos set of {1,2,3}
         np_table = self.nextPosTable
-        # states will have numbers as labels.
+        np_table = self.nextPosTable
         state_counter = 0
         next_node_counter = 1
 
@@ -394,90 +393,73 @@ class AST:
         # so { 0: {positions:{1,2,3} transitions: {a: 2, b: 1} } } means state 0, has the positions {1,2,3} from the ast
         # and taht with "a" moves to state 2, and with "b" moves to state 1 (POSITIONS and states are not the same)
         transition_table = {}
-
-        # where al subsets that we found are stored
-        all_sets = set()
-        #to check wich states we already evaluated
+        
+        # turning sets to frozensts for consistency
+        all_sets = set([frozenset(sorted(self.root.firstPos))])
         evaluated_sets = set()
 
-        # initial state is firstPos of root
-        inital_set = self.root.firstPos
-        all_sets.add(frozenset(inital_set))
-        non_evaluated_sets = all_sets - evaluated_sets
+        # order alfabet
+        alphabet = sorted(list(self.alphabet))
 
-        transition_table[state_counter] = {"positions": inital_set, "transitions": {}}
+        transition_table[state_counter] = {"positions": set(self.root.firstPos), "transitions": {}}
 
-        while non_evaluated_sets != set():
-
-            selected_set = next(iter(non_evaluated_sets))
+        while all_sets - evaluated_sets:
+            # using always the first set not evaluated
+            selected_set = next(iter(all_sets - evaluated_sets))
 
             # for each letter in the alphabet
-            for char in self.alphabet:
-
-                print(f"Currently testing set {set(selected_set)}, with alphabet: {char}")
-
+            for char in alphabet:
                 union_sigPos = set()
 
-                for position in selected_set:
-
-                    if np_table[position]["value"] == char:
-                        union_sigPos.update(np_table[position]["nextPos"])
+                print(f"Currently testing set {set(selected_set)}, with alphabet: {char}")
 
                 # Here is the point when a node does not have a transition with letter of the alphabet.
                 # dead states can be implemented here also, but for simplicity of the DFA drawing we are skiping if the 
                 # node does not have transitions with a specific alphabet letter
+                for position in selected_set:
+                    if np_table[position]["value"] == char:
+                        union_sigPos.update(np_table[position]["nextPos"])
+
                 if not union_sigPos:
-                    print(f"No valid transition for ({state_counter},{char}) -> empty set")
                     continue 
 
-                # now we have to check if said set already exists 
+                 # now we have to check if said set already exists 
+                found_alias = None
+                for idx, state in transition_table.items():
+                    if state["positions"] == union_sigPos:
+                        found_alias = idx
+                        break
 
-                found_alias = self.getAlias(transition_table, union_sigPos)
-
-                if found_alias == "":
-
-                    print(f"There is no set with positions {set(union_sigPos)}, ({state_counter},{char}) -> {union_sigPos} so we asign = {next_node_counter}")
+                if found_alias is None:
+                    # new state
+                    print(f"There is no set with the union positions {set(union_sigPos)}, ({state_counter},{char}) -> {union_sigPos} so we asign = {next_node_counter}")
                     #add transition to the tstae we are evaluating (1,a) -> 2, on state 1 with a we move to 2 for example
-                    transition_table[state_counter]["positions"] = set(selected_set)
+                    transition_table[next_node_counter] = {
+                        "positions": union_sigPos, 
+                        "transitions": {}
+                    }
                     transition_table[state_counter]["transitions"][char] = next_node_counter
-
-                    #adding the newly found set to our set of all sets
-                    all_sets.add(frozenset(union_sigPos))
-                    # now adding it to the transition table
-                    transition_table[next_node_counter] = {"positions": set(union_sigPos), "transitions": {}}
-                    #adding in case a new set is found
+                    all_sets.add(frozenset(sorted(union_sigPos)))
                     next_node_counter += 1
-                
                 else:
-                    print(f"There is already a set with positions {set(union_sigPos)}, ({state_counter},{char}) -> {union_sigPos} = {found_alias}")
-                    transition_table[state_counter]["transitions"][char] = int(found_alias)
-                
+                    # new state
+                    print(f"There is already a set with the union positions {set(union_sigPos)}, ({state_counter},{char}) -> {union_sigPos} = {found_alias}")
+                    transition_table[state_counter]["transitions"][char] = found_alias
+            
             evaluated_sets.add(frozenset(selected_set))
-            non_evaluated_sets = all_sets - evaluated_sets
-
             state_counter += 1
 
             print("\n")
 
+        # acceptances states
         acceptance_states = {}
-
         for index, values in transition_table.items():
-            print(index, values)
+            accepting_for = [
+                hashtag_id for hashtag_id, position in self.end_state.items() 
+                if position in values["positions"]
+            ]
             
-            # Lista para almacenar todos los # que hacen este estado de aceptación
-            accepting_for = []
-            
-            for hashtag_id, position in self.end_state.items():
-                if position in values["positions"]:
-                    print(f"State {index} is acceptance for {hashtag_id}")
-                    accepting_for.append(hashtag_id)
-            
-            # Solo agregamos el estado si es de aceptación para al menos un #
             if accepting_for:
                 acceptance_states[index] = accepting_for
-                
-        print("transition table: ", transition_table)
 
-        clean_table = self.clean_transition_table(transition_table)
-
-        return clean_table, acceptance_states
+        return self.clean_transition_table(transition_table), acceptance_states
