@@ -259,7 +259,9 @@ def get_formatted_normalized_expressions(file):
     for token in tokens:
         nombre = token.get('nombre')
         regex = token.get('regex')
-        exp = regex.replace(" ", "")
+        exp = regex
+        #exp = regex.replace(" ", "")
+
 
         if validateParentheses(exp):
                 #its necesarry to concatenate the # at the end firs before starting to process the regex
