@@ -381,85 +381,65 @@ class AST:
         return cleaned_table
         
     def nextPos_table_to_transition_table(self):
-        # the table format is like this { 1: {'value': 'a', 'nextPos': {1,2,3}, ... }
-        # this means that leaf 1 has a value of a and a nextPos set of {1,2,3}
         np_table = self.nextPosTable
-        np_table = self.nextPosTable
-        state_counter = 0
-        next_node_counter = 1
-
-        # the ransition wil be a dictionary of dictionaries
-        # the first key will be the number of the node and the value will be its transitions
-        # so { 0: {positions:{1,2,3} transitions: {a: 2, b: 1} } } means state 0, has the positions {1,2,3} from the ast
-        # and taht with "a" moves to state 2, and with "b" moves to state 1 (POSITIONS and states are not the same)
         transition_table = {}
+        state_counter = 0
         
-        # turning sets to frozensts for consistency
-        all_sets = set([frozenset(sorted(self.root.firstPos))])
-        evaluated_sets = set()
-
-        # order alfabet
-        alphabet = sorted(list(self.alphabet))
-
-        transition_table[state_counter] = {"positions": set(self.root.firstPos), "transitions": {}}
-
-        while all_sets - evaluated_sets:
-            # using always the first set not evaluated
-            selected_set = next(iter(all_sets - evaluated_sets))
-
-            # for each letter in the alphabet
-            for char in alphabet:
-                union_sigPos = set()
-
-                print(f"Currently testing set {set(selected_set)}, with alphabet: {char}")
-
-                # Here is the point when a node does not have a transition with letter of the alphabet.
-                # dead states can be implemented here also, but for simplicity of the DFA drawing we are skiping if the 
-                # node does not have transitions with a specific alphabet letter
-                for position in selected_set:
+        # Usin a dictionary to track unique sets with consistent mapping
+        set_to_state = {}
+        
+        # Initial state is firstPos of root
+        initial_set = frozenset(self.root.firstPos)
+        set_to_state[initial_set] = state_counter
+        transition_table[state_counter] = {
+            "positions": set(initial_set), 
+            "transitions": {}
+        }
+        
+        # Queue for sets to process (guaranteed order)
+        sets_to_process = [initial_set]
+        processed_sets = set([initial_set])
+        
+        while sets_to_process:
+            current_set = sets_to_process.pop(0)
+            current_state = set_to_state[current_set]
+            
+            # Process each alphabet symbol Sortning for consistency
+            for char in sorted(self.alphabet):  
+                next_set_positions = set()
+                
+                for position in current_set:
                     if np_table[position]["value"] == char:
-                        union_sigPos.update(np_table[position]["nextPos"])
-
-                if not union_sigPos:
-                    continue 
-
-                 # now we have to check if said set already exists 
-                found_alias = None
-                for idx, state in transition_table.items():
-                    if state["positions"] == union_sigPos:
-                        found_alias = idx
-                        break
-
-                if found_alias is None:
-                    # new state
-                    print(f"There is no set with the union positions {set(union_sigPos)}, ({state_counter},{char}) -> {union_sigPos} so we asign = {next_node_counter}")
-                    #add transition to the tstae we are evaluating (1,a) -> 2, on state 1 with a we move to 2 for example
-                    transition_table[next_node_counter] = {
-                        "positions": union_sigPos, 
+                        next_set_positions.update(np_table[position]["nextPos"])
+                
+                if not next_set_positions:
+                    continue
+                
+                next_set = frozenset(next_set_positions)
+                
+                # Determine if this set of positions has been seen before
+                if next_set not in set_to_state:
+                    state_counter += 1
+                    set_to_state[next_set] = state_counter
+                    transition_table[state_counter] = {
+                        "positions": set(next_set), 
                         "transitions": {}
                     }
-                    transition_table[state_counter]["transitions"][char] = next_node_counter
-                    all_sets.add(frozenset(sorted(union_sigPos)))
-                    next_node_counter += 1
-                else:
-                    # new state
-                    print(f"There is already a set with the union positions {set(union_sigPos)}, ({state_counter},{char}) -> {union_sigPos} = {found_alias}")
-                    transition_table[state_counter]["transitions"][char] = found_alias
-            
-            evaluated_sets.add(frozenset(selected_set))
-            state_counter += 1
-
-            print("\n")
-
-        # acceptances states
+                    sets_to_process.append(next_set)
+                    processed_sets.add(next_set)
+                
+                # Add transition
+                transition_table[current_state]["transitions"][char] = set_to_state[next_set]
+        
+        # Identify acceptance states 
         acceptance_states = {}
-        for index, values in transition_table.items():
+        for state, data in transition_table.items():
             accepting_for = [
                 hashtag_id for hashtag_id, position in self.end_state.items() 
-                if position in values["positions"]
+                if position in data["positions"]
             ]
-            
             if accepting_for:
-                acceptance_states[index] = accepting_for
-
-        return self.clean_transition_table(transition_table), acceptance_states
+                acceptance_states[state] = accepting_for
+        
+        clean_table = self.clean_transition_table(transition_table)
+        return clean_table, acceptance_states
