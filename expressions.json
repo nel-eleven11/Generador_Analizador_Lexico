@@ -2,7 +2,7 @@
     "tokens": [
         {
             "nombre": "ws",
-            "regex": "(ε|\t|\n|])+"
+            "regex": "(  |\t|\n|\\])+"
         },
         {
             "nombre": "ID",

@@ -33,8 +33,8 @@ def unescape_string(s):
 def process_special_chars(s):
     new_s = ""
     for ch in s:
-        if ch in special:
-            new_s += "\\\\" + ch  # Agrega dos barras invertidas antes del carácter
+        if ch in special_chars:
+            new_s += "\\" + ch  # Agrega dos barras invertidas antes del carácter
         else:
             new_s += ch
     return new_s 
@@ -45,12 +45,19 @@ def read_group(entrada, index, open_char, close_char):
     y luego sigue concatenando hasta encontrar un espacio.
     """
     token = ""
+    count_com = 0
     # Agrega el caracter de apertura
     token += entrada[index]
     index += 1
     # Lee hasta encontrar el caracter de cierre
-    while index < len(entrada) and entrada[index] != close_char:
-        token += entrada[index]
+    while (index < len(entrada)) and (entrada[index] != close_char) and (count_com % 2 == 0) :
+        if entrada[index] in ["'", '"']:
+            count_com += 1
+        if (entrada[index] in special_chars) and (count_com % 2 == 1):
+            #print("char escp gp")
+            token += process_special_chars(entrada[index])
+        else:
+            token += entrada[index]
         index += 1
     # Agrega el caracter de cierre (si existe)
     if index < len(entrada):
@@ -58,7 +65,13 @@ def read_group(entrada, index, open_char, close_char):
         index += 1
     # Luego, sigue concatenando caracteres hasta topar con un espacio en blanco
     while index < len(entrada) and not entrada[index].isspace():
-        token += entrada[index]
+        if entrada[index] in ["'", '"']:
+            count_com += 1
+        if (entrada[index] in special_chars) and (count_com % 2 == 1):
+            #print("char escp gp pas")
+            token += process_special_chars(entrada[index])
+        else:
+            token += entrada[index]
         index += 1
     return token, index
 
@@ -398,7 +411,7 @@ def transform_let_regex_list(let_regex):
     new_let_regex = []
     for regex in let_regex:
         # Reemplazar espacios en blanco entre comillas por ε
-        regex = regex.replace("' '", "ε").replace('" "', "ε")
+        regex = regex.replace("' '", "'  '").replace('" "', "'  '")
         if '[' in regex:
             new_regex = transform_brackets(regex)
         else:
