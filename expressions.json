@@ -51,14 +51,6 @@
         {
             "nombre": "RPAREN",
             "regex": "\\)"
-        },
-        {
-            "nombre": "\\[",
-            "regex": "\\["
-        },
-        {
-            "nombre": "\\]",
-            "regex": "\\]"
         }
     ]
 }

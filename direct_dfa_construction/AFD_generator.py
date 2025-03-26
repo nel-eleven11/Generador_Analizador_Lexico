@@ -62,7 +62,7 @@ def infixToPostfix(formattedRegEx):
     return postfix
 
 def create_AST_from_combined_postfix():
-    expressions, postfixExpressions, formatted_normalized_exp, final_token_list = get_formatted_normalized_expressions("yal_output_example.json")
+    expressions, postfixExpressions, formatted_normalized_exp, final_token_list = get_formatted_normalized_expressions("expressions.json")
 
     #print("my exp", expressions)
     #print(postfixExpressions)
