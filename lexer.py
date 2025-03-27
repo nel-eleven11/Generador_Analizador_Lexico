@@ -3,11 +3,21 @@ import pickle
 import json
 
 
-def load_token_names(json_file):
-    with open(json_file, 'r') as f:
-        data = json.load(f)
-    token_names = {token['id']: token['nombre'] for token in data['tokens']}
-    return token_names
+class Node:
+    def __init__(self, state_id, is_accepting=False, token_ids=None):
+        self.state_id = state_id
+        self.transitions = {}
+        self.is_accepting = is_accepting
+        self.token_ids = token_ids if token_ids else []
+
+    def add_transition(self, char, node):
+        self.transitions[char] = node
+
+    def get_next_node(self, char):
+        return self.transitions.get(char)
+
+    def __str__(self):
+        return f"Node({self.state_id}, accepting={self.is_accepting}, tokens={self.token_ids})"
 
 
 def load_dfa(transitions_file, acceptance_file):
@@ -18,37 +28,55 @@ def load_dfa(transitions_file, acceptance_file):
     return transitions, acceptance
 
 
-def lexical_analyzer(input_string, transitions, acceptance, token_names):
+def build_dfa_nodes(transitions, acceptance):
+    nodes = {}
+    for state_id in transitions.keys():
+        is_accepting = state_id in acceptance
+        token_ids = acceptance.get(state_id, [])
+        nodes[state_id] = Node(state_id, is_accepting, token_ids)
+
+    for state_id, trans_dict in transitions.items():
+        current_node = nodes[state_id]
+        for char, next_state_id in trans_dict['transitions'].items():
+            next_node = nodes[next_state_id]
+            current_node.add_transition(char, next_node)
+
+    return nodes, nodes[0]
+
+
+def load_token_names(json_file):
+    with open(json_file, 'r') as f:
+        data = json.load(f)
+    return {token['id']: token['nombre'] for token in data['tokens']}
+
+
+def lexical_analyzer(input_string, start_node, token_names):
     tokens = []
     current_position = 0
 
     while current_position < len(input_string):
-        state = 0 
+        current_node = start_node
         pos = current_position
-        last_accepting_state = None
+        last_accepting_node = None
         last_accepting_pos = None
         selected_token_id = None
 
         while pos < len(input_string):
             char = input_string[pos]
-            if (state in transitions and
-                'transitions' in transitions[state] and
-                    char in transitions[state]['transitions']):
-                state = transitions[state]['transitions'][char]
-                if state in acceptance:
-                    ids = acceptance[state]
-                    if ids:
-                        selected_token_id = ids[0]
-                        last_accepting_state = state
-                        last_accepting_pos = pos
+            next_node = current_node.get_next_node(char)
+            if next_node:
+                current_node = next_node
+                if current_node.is_accepting and current_node.token_ids:
+                    selected_token_id = current_node.token_ids[0]
+                    last_accepting_node = current_node
+                    last_accepting_pos = pos
                 pos += 1
             else:
                 break
 
-        if last_accepting_state is not None and selected_token_id is not None:
+        if last_accepting_node is not None and selected_token_id is not None:
             lexeme = input_string[current_position: last_accepting_pos + 1]
             token_name = token_names.get(selected_token_id, "UNKNOWN")
-
 
             tokens.append({"TokenName": token_name, "Lexema": lexeme})
             current_position = last_accepting_pos + 1
@@ -61,8 +89,7 @@ def lexical_analyzer(input_string, transitions, acceptance, token_names):
     return tokens
 
 
-def process_file(file_path, transitions, acceptance, token_names):
-
+def process_file(file_path, start_node, token_names):
     all_tokens = []
 
     with open(file_path, 'r', encoding='utf-8') as f:
@@ -72,8 +99,7 @@ def process_file(file_path, transitions, acceptance, token_names):
                 continue
 
             print(f"Procesando línea {line_number}: {line}")
-            tokens = lexical_analyzer(
-                line, transitions, acceptance, token_names)
+            tokens = lexical_analyzer(line, start_node, token_names)
             all_tokens.extend(tokens)
 
             for token in tokens:

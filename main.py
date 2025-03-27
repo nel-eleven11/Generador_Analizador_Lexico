@@ -10,8 +10,9 @@ Autores:
 
 from pprint import pprint
 from readYalex import process_yalex_file, simplify_tokens, guardar_tokens_json, transform_let_regex_list
-from lexer import load_dfa, process_file, load_token_names
+from lexer import load_dfa, process_file, load_token_names, build_dfa_nodes
 from AFD_generator import generate_AFD_from_json
+import os
 
 print("Generador de analizador léxico")
 
@@ -61,13 +62,49 @@ print("\nArchivo 'tokens.json' generado exitosamente.")
 # esta funcion guarda el AFD y tabla de transiciones en archivos pkl para hacer luego la parte del análsisi léxico.
 generate_AFD_from_json()
 
-# Ejemplo de uso
 transitions, acceptance = load_dfa(
     "transition_table.pkl", "acceptance_states.pkl")
+nodes, start_node = build_dfa_nodes(transitions, acceptance)
 token_names = load_token_names('final_out_test.json')
-file_path = 'input.txt'  # Ajusta esta ruta según tu archivo
 
-# Procesar el archivo
-tokens = process_file(file_path, transitions, acceptance, token_names)
+files = [
+    "random_data.txt",
+    "random_data_2.txt",
+    "random_data_3.txt"
+]
 
-pprint(tokens)
+while True:
+    print("\n=== MENÚ DE OPCIONES ===\n")
+    print("1) Procesar archivo:", files[0])
+    print("2) Procesar archivo:", files[1])
+    print("3) Procesar archivo:", files[2])
+    print("4) Ingresar texto manual")
+    print("5) Salir\n")
+
+    choice = input("Elige una opción: ")
+
+    if choice == '1' or choice == '2' or choice == '3':
+        index = int(choice) - 1
+        file_path = files[index]
+
+        if not os.path.exists(file_path):
+            print(f"\nEl archivo '{file_path}' no existe. Revisa la ruta.\n")
+            continue
+
+        print(f"\nProcesando el archivo: {file_path}")
+        tokens = process_file(file_path, start_node, token_names)
+        pprint(tokens)
+
+    elif choice == '4':
+        print("\n== Ingresar texto manual ==\n")
+        input_text = input("Escribe el texto que deseas procesar:\n> ")
+
+        tokens = process_file(input_text, start_node, token_names)
+        pprint(tokens)
+
+    elif choice == '5':
+        print("\nSaliendo del programa. ¡Hasta luego!\n")
+        break
+
+    else:
+        print("\nOpción inválida. Inténtalo de nuevo.\n")
