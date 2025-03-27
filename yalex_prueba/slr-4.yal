@@ -2,9 +2,9 @@
 
 (* Introducir cualquier header aqui *)
 
-let delim = [' ''\t''\n'']']
+let delim = [' ''\t''\n']
 let ws = delim+
-let letter = ['A'-'Z''a'-'z']'['
+let letter = ['A'-'Z''a'-'z']
 let str = (_)*
 let digit = ['0'-'9']
 let digits = digit+
@@ -25,7 +25,5 @@ rule tokens =
   | '/'       { return DIV }
   | '('       { return LPAREN }
   | ')'       { return RPAREN }
-  | '['
-  | ']'
 
 (* Introducir cualquier trailer aqui *)
