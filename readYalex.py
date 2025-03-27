@@ -10,6 +10,7 @@ Archivo:
 """
 
 import json
+import pickle
 
 special_chars = set("+*()[]{}?~")
 
@@ -25,6 +26,7 @@ class readYalex:
             return list(f.read())
 
 # Funciones auxiliares para extraer tokens (palabras o grupos) del archivo
+
 
 def unescape_string(s):
     """
@@ -114,6 +116,7 @@ def read_group(entrada, index, open_char, close_char):
         index += 1
     return token, index
 
+
 def read_quoted(entrada, index):
     """
     Lee una secuencia iniciada por comillas simples o dobles,
@@ -122,7 +125,7 @@ def read_quoted(entrada, index):
     """
     quote_char = entrada[index]
     token = ""
-    #token += quote_char
+    # token += quote_char
     index += 1
     while index < len(entrada) and entrada[index] != quote_char:
         if entrada[index] in special_chars:
@@ -131,12 +134,13 @@ def read_quoted(entrada, index):
             token += entrada[index]
         index += 1
     if index < len(entrada):
-        #token += entrada[index]
+        # token += entrada[index]
         index += 1
     while index < len(entrada) and not entrada[index].isspace():
         token += entrada[index]
         index += 1
     return token, index
+
 
 def read_token(entrada, index):
     """
@@ -159,6 +163,7 @@ def read_token(entrada, index):
             token += char
             index += 1
     return token, index
+
 
 def process_yalex_file(filename):
     """
@@ -189,7 +194,7 @@ def process_yalex_file(filename):
     let_regex = []
     rule_tokens = []
     rule_actions = []
-    
+
     section = None  # Indica la sección actual: None, "let" o "rule"
     i = 0
     while i < len(tokens):
@@ -199,7 +204,7 @@ def process_yalex_file(filename):
             section = "rule"
             i += 1
             continue
-        
+
         # Procesamiento de la sección let (definición de tokens y regex)
         if section != "rule":
             if token.lower() == "let":
@@ -218,7 +223,7 @@ def process_yalex_file(filename):
         else:
             # En la sección rule se ignoran tokens como "=" o "tokens" (del encabezado)
             if token.lower() == "tokens":
-                i += 2  
+                i += 2
                 continue
             # Omitir comentarios (* *)
             if "(*" in token:
@@ -270,7 +275,8 @@ def custom_replace(expr, key, replacement):
         if expr[i:i+key_len] == key:
             left_boundary = (i == 0) or (not expr[i-1].isalnum())
             right_index = i + key_len
-            right_boundary = (right_index >= len(expr)) or (not expr[right_index].isalnum())
+            right_boundary = (right_index >= len(expr)) or (
+                not expr[right_index].isalnum())
             if left_boundary and right_boundary:
                 result += replacement
                 i += key_len
@@ -278,6 +284,7 @@ def custom_replace(expr, key, replacement):
         result += expr[i]
         i += 1
     return result
+
 
 def expand_expression(expression, definitions):
     """
@@ -287,12 +294,14 @@ def expand_expression(expression, definitions):
     previous = None
     new_expr = expression
     # Ordenar las claves por longitud decreciente para evitar conflictos
-    sorted_keys = sorted(definitions.keys(), key=lambda k: len(k), reverse=True)
+    sorted_keys = sorted(definitions.keys(),
+                         key=lambda k: len(k), reverse=True)
     while new_expr != previous:
         previous = new_expr
         for key in sorted_keys:
             new_expr = custom_replace(new_expr, key, definitions[key])
     return new_expr
+
 
 def simplify_tokens(let_tokens, let_regex, rule_tokens, rule_actions):
     """
@@ -348,7 +357,7 @@ def parse_bracket(expr, i):
     y se transforma en una agrupación con alternancia.
     Se extraen los tokens (entre comillas) y se detectan rangos (p.ej., '0'-'9').
     Soporta grupos anidados.
-    
+
     Retorna una tupla (transformed, nuevo_indice)
     """
     special_py = set("stn")
@@ -434,6 +443,7 @@ def transform_brackets(expr):
             i += 1
     return result
 
+
 def remove_useless_quotes(expr):
     """
     Recorre la expresión expr y elimina las comillas simples o dobles que encierran
@@ -477,4 +487,3 @@ def transform_let_regex_list(let_regex):
         new_regex = remove_useless_quotes(new_regex)
         new_let_regex.append(new_regex)
     return new_let_regex
-
