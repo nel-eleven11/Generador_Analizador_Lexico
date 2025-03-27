@@ -11,6 +11,7 @@ Autores:
 from pprint import pprint
 from readYalex import process_yalex_file, simplify_tokens, guardar_tokens_json, transform_let_regex_list
 from lexer import load_dfa, process_file, load_token_names
+from AFD_generator import generate_AFD_from_json
 
 print("Generador de analizador léxico")
 
@@ -55,6 +56,10 @@ print(actions)
 # Guardamos en un archivo JSON los tokens finales emparejados con sus acciones
 guardar_tokens_json(final_tokens, actions, "expressions.json")
 print("\nArchivo 'tokens.json' generado exitosamente.")
+
+# Creacion del AFD a partir del archivo expressions.json
+# esta funcion guarda el AFD y tabla de transiciones en archivos pkl para hacer luego la parte del análsisi léxico.
+generate_AFD_from_json()
 
 # Ejemplo de uso
 transitions, acceptance = load_dfa(

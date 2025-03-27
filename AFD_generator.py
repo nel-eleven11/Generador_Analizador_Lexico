@@ -1,6 +1,6 @@
-from regex_validator.verifier import get_formatted_normalized_expressions
-from regex_unifier.unifier import combine_formatted_regex
-from ASTNode import AST
+from DFA_GENERATOR.verifier import get_formatted_normalized_expressions
+from DFA_GENERATOR.unifier import combine_formatted_regex
+from DFA_GENERATOR.ASTNode import AST
 import json
 import pickle 
 
@@ -137,13 +137,13 @@ def save_to_pickle(dictionary, filename):
     with open(filename, 'wb') as file:
         pickle.dump(dictionary, file)
 
+def generate_AFD_from_json():
+    #ast = get_formatted_normalized_expressions("yal_output_example.json")
+    ast = create_AST_from_combined_postfix()
+    transition_table, acceptance_states = direct_construction_algorithm(ast)
 
-#ast = get_formatted_normalized_expressions("yal_output_example.json")
-ast = create_AST_from_combined_postfix()
-transition_table, acceptance_states = direct_construction_algorithm(ast)
+    save_to_json(transition_table, "transition_table.json")
+    save_to_json(acceptance_states, "acceptance_states.json")
 
-save_to_json(transition_table, "transition_table.json")
-save_to_json(acceptance_states, "acceptance_states.json")
-
-save_to_pickle(transition_table, "transition_table.pkl")
-save_to_pickle(acceptance_states, "acceptance_states.pkl")
+    save_to_pickle(transition_table, "transition_table.pkl")
+    save_to_pickle(acceptance_states, "acceptance_states.pkl")
