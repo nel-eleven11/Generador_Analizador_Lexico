@@ -27,6 +27,8 @@ class readYalex:
 
 # Funciones auxiliares para extraer tokens (palabras o grupos) del archivo
 
+def unescape_string_special(s):
+    return s.encode('utf-8').decode('unicode_escape')
 
 def unescape_string(s):
     """
@@ -56,7 +58,10 @@ def unescape_string(s):
                 if s[i+1] in special:
                     result += '\\' + s[i+1]
                 elif s[i+1] in special_py:
-                    result += s[i] + s[i+1]
+                    if s[i+1] == 's':
+                        result += ' '
+                    else:
+                        result += '\\' + s[i+1]
                 else:
                     # De lo contrario, descartamos la '\' y agregamos el siguiente carácter
                     result += s[i+1]
@@ -213,6 +218,7 @@ def process_yalex_file(filename):
                     nombre = tokens[i+1]
                     # Aplicamos un unescape a la expresión regular
                     regex_exp = unescape_string(tokens[i+3])
+                    regex_exp = unescape_string_special(regex_exp)
                     let_tokens.append(nombre)
                     let_regex.append(regex_exp)
                     print(regex_exp)
@@ -360,7 +366,7 @@ def parse_bracket(expr, i):
 
     Retorna una tupla (transformed, nuevo_indice)
     """
-    special_py = set("stn")
+    special_py = set("tn")
     alternatives = []
     
     i += 1  # saltar '['
@@ -382,15 +388,16 @@ def parse_bracket(expr, i):
             if quote == '"':
                 res = ""
                 while j < (i - 1):
-                    if (expr[j] == "\\") and (expr[j+1] in special_py):
-                        res = expr[j] + expr[j+1]
+                    """if (expr[j] == "\\") and (expr[j+1] in special_py):
+                        res = "\\" + expr[j+1]
+                        res = unescape_string_special(res)
                         alternatives.append(res)
                         #print("hay especial y corch")
                         j += 2
-                    else:
-                        res = expr[j]
-                        alternatives.append(res)
-                        j += 1
+                    else:"""
+                    res = expr[j]
+                    alternatives.append(res)
+                    j += 1
             else:
                 alternatives.append(token_val)
             # Verificar si se define un rango (por ejemplo, '0'-'9')
