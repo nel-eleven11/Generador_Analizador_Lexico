@@ -27,7 +27,46 @@ class readYalex:
 # Funciones auxiliares para extraer tokens (palabras o grupos) del archivo
 
 def unescape_string(s):
-    return s.encode('utf-8').decode('unicode_escape')
+    """
+    Procesa manualmente la cadena s:
+      - Si se encuentran dos barras invertidas consecutivas, se reemplazan por una sola.
+      - Si una barra invertida precede a un carácter especial (+, *, (, ), [, ], {, }, ?, ~),
+        se deja la barra invertida para no "desescapar" ese carácter.
+      - Para cualquier otro caso, se elimina la barra invertida.
+      
+    Ejemplo:
+      Entrada: "\\\\s"  (dos barras seguidas y luego 's')
+      Salida: "\s"
+    """
+    result = ""
+    special = set("+*()[]{}?~")
+    special_py = set("stn")
+    i = 0
+    while i < len(s):
+        if s[i] == '\\':
+            # Si hay otra '\' inmediatamente después...
+            if i+1 < len(s) and s[i+1] == '\\':
+                # Colapsar ambas en una sola
+                result += s[i]
+                i += 2
+            elif i+1 < len(s):
+                # Si la siguiente es especial, dejamos la barra invertida (no se "desescapa")
+                if s[i+1] in special:
+                    result += '\\' + s[i+1]
+                elif s[i+1] in special_py:
+                    result += s[i] + s[i+1]
+                else:
+                    # De lo contrario, descartamos la '\' y agregamos el siguiente carácter
+                    result += s[i+1]
+                i += 2
+            else:
+                # Si la '\' es el último carácter, se agrega tal cual
+                result += '\\'
+                i += 1
+        else:
+            result += s[i]
+            i += 1
+    return result
 
 # Función auxiliar para procesar caracteres especiales
 def process_special_chars(s):
@@ -53,7 +92,7 @@ def read_group(entrada, index, open_char, close_char):
     while (index < len(entrada)) and (entrada[index] != close_char) and (count_com % 2 == 0) :
         if entrada[index] in ["'"]:
             count_com += 1
-        if (entrada[index] in special_chars) and (count_com % 2 == 1):
+        if (entrada[index] in special_chars) and (count_com % 2 == 1) and (count_com != 0):
             #print("char escp gp")
             token += process_special_chars(entrada[index])
         else:
@@ -67,7 +106,7 @@ def read_group(entrada, index, open_char, close_char):
     while index < len(entrada) and not entrada[index].isspace():
         if entrada[index] in ["'"]:
             count_com += 1
-        if (entrada[index] in special_chars) and (count_com % 2 == 1):
+        if (entrada[index] in special_chars) and (count_com % 2 == 1) and (count_com != 0):
             #print("char escp gp pas")
             token += process_special_chars(entrada[index])
         else:
@@ -142,6 +181,8 @@ def process_yalex_file(filename):
             continue
         tk, index = read_token(entrada, index)
         tokens.append(tk)
+
+    #print(tokens)
     
     # Ahora procesamos la lista de tokens para llenar nuestras 4 listas
     let_tokens = []
@@ -169,6 +210,8 @@ def process_yalex_file(filename):
                     regex_exp = unescape_string(tokens[i+3])
                     let_tokens.append(nombre)
                     let_regex.append(regex_exp)
+                    print(regex_exp)
+                    print("\n")
                     i += 4
                     continue
             i += 1
@@ -207,6 +250,8 @@ def process_yalex_file(filename):
                 i += 1
             rule_tokens.append(patron)
             rule_actions.append(accion)
+
+    print(let_regex)
     
     return let_tokens, let_regex, rule_tokens, rule_actions
 
@@ -306,7 +351,9 @@ def parse_bracket(expr, i):
     
     Retorna una tupla (transformed, nuevo_indice)
     """
+    special_py = set("stn")
     alternatives = []
+    
     i += 1  # saltar '['
     while i < len(expr) and expr[i] != ']':
         if expr[i].isspace():
@@ -317,14 +364,24 @@ def parse_bracket(expr, i):
             quote = expr[i]
             i += 1
             token_val = ""
+            j = i
             while i < len(expr) and expr[i] != quote:
                 token_val += expr[i]
                 i += 1
             i += 1  # saltar comilla de cierre
             # Si es doble comilla, se toman cada uno de sus caracteres por separado
             if quote == '"':
-                for ch in token_val:
-                    alternatives.append(ch)
+                res = ""
+                while j < (i - 1):
+                    if (expr[j] == "\\") and (expr[j+1] in special_py):
+                        res = expr[j] + expr[j+1]
+                        alternatives.append(res)
+                        #print("hay especial y corch")
+                        j += 2
+                    else:
+                        res = expr[j]
+                        alternatives.append(res)
+                        j += 1
             else:
                 alternatives.append(token_val)
             # Verificar si se define un rango (por ejemplo, '0'-'9')
@@ -356,6 +413,7 @@ def parse_bracket(expr, i):
             i += 1
     if i < len(expr) and expr[i] == ']':
         i += 1  # saltar ']'
+    print(alternatives)
     transformed = "(" + "|".join(alternatives) + ")"
     return transformed, i
 
