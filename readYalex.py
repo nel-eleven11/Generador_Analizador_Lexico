@@ -14,6 +14,7 @@ import pickle
 
 special_chars = set("+*()[]{}?~")
 
+
 class readYalex:
     def __init__(self, yalex_file):
         self.yalex_file = yalex_file
@@ -27,8 +28,10 @@ class readYalex:
 
 # Funciones auxiliares para extraer tokens (palabras o grupos) del archivo
 
+
 def unescape_string_special(s):
     return s.encode('utf-8').decode('unicode_escape')
+
 
 def unescape_string(s):
     """
@@ -37,7 +40,7 @@ def unescape_string(s):
       - Si una barra invertida precede a un carácter especial (+, *, (, ), [, ], {, }, ?, ~),
         se deja la barra invertida para no "desescapar" ese carácter.
       - Para cualquier otro caso, se elimina la barra invertida.
-      
+
     Ejemplo:
       Entrada: "\\\\s"  (dos barras seguidas y luego 's')
       Salida: "\s"
@@ -76,6 +79,8 @@ def unescape_string(s):
     return result
 
 # Función auxiliar para procesar caracteres especiales
+
+
 def process_special_chars(s):
     new_s = ""
     for ch in s:
@@ -83,7 +88,8 @@ def process_special_chars(s):
             new_s += "\\" + ch  # Agrega dos barras invertidas antes del carácter
         else:
             new_s += ch
-    return new_s 
+    return new_s
+
 
 def read_group(entrada, index, open_char, close_char):
     """
@@ -96,11 +102,11 @@ def read_group(entrada, index, open_char, close_char):
     token += entrada[index]
     index += 1
     # Lee hasta encontrar el caracter de cierre
-    while (index < len(entrada)) and (entrada[index] != close_char) and (count_com % 2 == 0) :
+    while (index < len(entrada)) and (entrada[index] != close_char) and (count_com % 2 == 0):
         if entrada[index] in ["'"]:
             count_com += 1
         if (entrada[index] in special_chars) and (count_com % 2 == 1) and (count_com != 0):
-            #print("char escp gp")
+            # print("char escp gp")
             token += process_special_chars(entrada[index])
         else:
             token += entrada[index]
@@ -114,7 +120,7 @@ def read_group(entrada, index, open_char, close_char):
         if entrada[index] in ["'"]:
             count_com += 1
         if (entrada[index] in special_chars) and (count_com % 2 == 1) and (count_com != 0):
-            #print("char escp gp pas")
+            # print("char escp gp pas")
             token += process_special_chars(entrada[index])
         else:
             token += entrada[index]
@@ -192,8 +198,8 @@ def process_yalex_file(filename):
         tk, index = read_token(entrada, index)
         tokens.append(tk)
 
-    #print(tokens)
-    
+    # print(tokens)
+
     # Ahora procesamos la lista de tokens para llenar nuestras 4 listas
     let_tokens = []
     let_regex = []
@@ -263,7 +269,7 @@ def process_yalex_file(filename):
             rule_actions.append(accion)
 
     print(let_regex)
-    
+
     return let_tokens, let_regex, rule_tokens, rule_actions
 
 
@@ -368,7 +374,7 @@ def parse_bracket(expr, i):
     """
     special_py = set("tn")
     alternatives = []
-    
+
     i += 1  # saltar '['
     while i < len(expr) and expr[i] != ']':
         if expr[i].isspace():

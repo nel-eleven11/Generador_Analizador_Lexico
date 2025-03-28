@@ -1,5 +1,5 @@
 import pickle
-
+import os
 import json
 
 
@@ -53,57 +53,66 @@ def load_token_names(json_file):
 def lexical_analyzer(input_string, start_node, token_names):
     tokens = []
     current_position = 0
+    with open('log.txt', 'w') as log_file:
 
-    while current_position < len(input_string):
-        current_node = start_node
-        pos = current_position
-        last_accepting_node = None
-        last_accepting_pos = None
-        selected_token_id = None
+        while current_position < len(input_string):
+            while current_position < len(input_string) and input_string[current_position].isspace():
+                current_position += 1
 
-        while pos < len(input_string):
-            char = input_string[pos]
-            next_node = current_node.get_next_node(char)
-            if next_node:
-                current_node = next_node
-                if current_node.is_accepting and current_node.token_ids:
-                    selected_token_id = current_node.token_ids[0]
-                    last_accepting_node = current_node
-                    last_accepting_pos = pos
-                pos += 1
-            else:
+            if current_position >= len(input_string):
                 break
 
-        if last_accepting_node is not None and selected_token_id is not None:
-            lexeme = input_string[current_position: last_accepting_pos + 1]
-            token_name = token_names.get(selected_token_id, "UNKNOWN")
+            current_node = start_node
+            pos = current_position
+            last_accepting_node = None
+            last_accepting_pos = None
+            selected_token_id = None
 
-            tokens.append({"TokenName": token_name, "Lexema": lexeme})
-            current_position = last_accepting_pos + 1
-        else:
-            error_char = input_string[current_position]
-            print(f"Error léxico en la posición {
-                  current_position}: '{error_char}'")
-            break
+            while pos < len(input_string):
+                char = input_string[pos]
+                if char.isspace():
+                    break
 
-    return tokens
+                next_node = current_node.get_next_node(char)
+                if next_node:
+                    current_node = next_node
+                    if current_node.is_accepting and current_node.token_ids:
+                        selected_token_id = current_node.token_ids[0]
+                        last_accepting_node = current_node
+                        last_accepting_pos = pos
+                    pos += 1
+                else:
+                    break
+
+            if last_accepting_node is not None and selected_token_id is not None:
+                lexeme = input_string[current_position:last_accepting_pos + 1]
+                token_name = token_names.get(selected_token_id, "UNKNOWN")
+                tokens.append({"TokenName": token_name, "Lexema": lexeme})
+                log_entry = f"Token reconocido '{
+                    lexeme}' con regex {token_name}\n"
+                log_file.write(log_entry)
+                current_position = last_accepting_pos + 1
+            else:
+                error_char = input_string[current_position]
+                error_msg = f"Error léxico en la posición {
+                    current_position}: '{error_char}'\n"
+                log_file.write(error_msg)
+                current_position += 1
+
+        return tokens
 
 
-def process_file(file_path, start_node, token_names):
-    all_tokens = []
+def process_file(input_data, start_node, token_names, isFile):
+    content = ""
+    if isFile:
+        with open(input_data, 'r') as file:
+            while True:
+                char = file.read(1)
+                if not char:
+                    break
+                content += char
 
-    with open(file_path, 'r', encoding='utf-8') as f:
-        for line_number, line in enumerate(f, 1):
-            line = line.strip()
-            if not line:
-                continue
+    else:
+        content = input_data
 
-            print(f"Procesando línea {line_number}: {line}")
-            tokens = lexical_analyzer(line, start_node, token_names)
-            all_tokens.extend(tokens)
-
-            for token in tokens:
-                print(f"  Token: {token['TokenName']
-                                  }, Lexema: {token['Lexema']}")
-
-    return all_tokens
+    return lexical_analyzer(content, start_node, token_names)

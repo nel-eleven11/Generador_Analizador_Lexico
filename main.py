@@ -13,6 +13,7 @@ from readYalex import process_yalex_file, simplify_tokens, guardar_tokens_json, 
 from lexer import load_dfa, process_file, load_token_names, build_dfa_nodes
 from AFD_generator import generate_AFD_from_json
 import os
+import json
 
 print("Generador de analizador léxico")
 
@@ -74,37 +75,62 @@ files = [
 ]
 
 while True:
-    print("\n=== MENÚ DE OPCIONES ===\n")
-    print("1) Procesar archivo:", files[0])
-    print("2) Procesar archivo:", files[1])
-    print("3) Procesar archivo:", files[2])
-    print("4) Ingresar texto manual")
-    print("5) Salir\n")
+    menu_text = "\n=== MENÚ DE OPCIONES ===\n\n" + \
+                f"1) Procesar archivo: {files[0]}\n" + \
+                f"2) Procesar archivo: {files[1]}\n" + \
+                f"3) Procesar archivo: {files[2]}\n" + \
+                "4) Ingresar texto manual\n" + \
+                "5) Salir\n"
+
+    print(menu_text)
 
     choice = input("Elige una opción: ")
 
-    if choice == '1' or choice == '2' or choice == '3':
+    if choice in ['1', '2', '3']:
         index = int(choice) - 1
         file_path = files[index]
 
         if not os.path.exists(file_path):
-            print(f"\nEl archivo '{file_path}' no existe. Revisa la ruta.\n")
+            error_msg = f"\nEl archivo '{
+                file_path}' no existe. Revisa la ruta.\n"
+            print(error_msg)
             continue
 
-        print(f"\nProcesando el archivo: {file_path}")
-        tokens = process_file(file_path, start_node, token_names)
-        pprint(tokens)
+        processing_msg = f"\nProcesando el archivo: {file_path}\n"
+        print(processing_msg)
+
+        tokens = process_file(file_path, start_node, token_names, True)
+
+        if isinstance(tokens, str):
+            print(tokens)
+        else:
+            json_filename = f'tokens.json'
+            with open(json_filename, 'w') as json_file:
+                json.dump(tokens, json_file, indent=4)
+
+            tokens_str = json.dumps(tokens, indent=4)
+            pprint(tokens)
 
     elif choice == '4':
-        print("\n== Ingresar texto manual ==\n")
+        manual_text_msg = "\n== Ingresar texto manual ==\n"
+        print(manual_text_msg)
+
         input_text = input("Escribe el texto que deseas procesar:\n> ")
 
-        tokens = process_file(input_text, start_node, token_names)
-        pprint(tokens)
+        tokens = process_file(input_text, start_node, token_names, False)
+
+        if isinstance(tokens, str):
+            pprint(tokens)
+        else:
+            with open('tokens_manual.json', 'w') as json_file:
+                json.dump(tokens, json_file, indent=4)
+
+            tokens_str = json.dumps(tokens, indent=4)
+            pprint(tokens)
 
     elif choice == '5':
-        print("\nSaliendo del programa. ¡Hasta luego!\n")
+        exit_msg = "\nSaliendo del programa. ¡Hasta luego!\n"
         break
 
     else:
-        print("\nOpción inválida. Inténtalo de nuevo.\n")
+        invalid_msg = "\nOpción inválida. Inténtalo de nuevo.\n"
