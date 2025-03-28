@@ -53,15 +53,9 @@ def load_token_names(json_file):
 def lexical_analyzer(input_string, start_node, token_names):
     tokens = []
     current_position = 0
+
     with open('log.txt', 'w') as log_file:
-
         while current_position < len(input_string):
-            while current_position < len(input_string) and input_string[current_position].isspace():
-                current_position += 1
-
-            if current_position >= len(input_string):
-                break
-
             current_node = start_node
             pos = current_position
             last_accepting_node = None
@@ -70,9 +64,6 @@ def lexical_analyzer(input_string, start_node, token_names):
 
             while pos < len(input_string):
                 char = input_string[pos]
-                if char.isspace():
-                    break
-
                 next_node = current_node.get_next_node(char)
                 if next_node:
                     current_node = next_node
@@ -87,10 +78,13 @@ def lexical_analyzer(input_string, start_node, token_names):
             if last_accepting_node is not None and selected_token_id is not None:
                 lexeme = input_string[current_position:last_accepting_pos + 1]
                 token_name = token_names.get(selected_token_id, "UNKNOWN")
+
                 tokens.append({"TokenName": token_name, "Lexema": lexeme})
+
                 log_entry = f"Token reconocido '{
                     lexeme}' con regex {token_name}\n"
                 log_file.write(log_entry)
+
                 current_position = last_accepting_pos + 1
             else:
                 error_char = input_string[current_position]
@@ -99,7 +93,7 @@ def lexical_analyzer(input_string, start_node, token_names):
                 log_file.write(error_msg)
                 current_position += 1
 
-        return tokens
+    return tokens
 
 
 def process_file(input_data, start_node, token_names, isFile):
