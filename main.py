@@ -101,15 +101,12 @@ while True:
 
         tokens = process_file(file_path, start_node, token_names, True)
 
-        if isinstance(tokens, str):
-            print(tokens)
-        else:
-            json_filename = f'tokens.json'
-            with open(json_filename, 'w') as json_file:
-                json.dump(tokens, json_file, indent=4)
 
-            tokens_str = json.dumps(tokens, indent=4)
-            pprint(tokens)
+        json_filename = f'tokens.json'
+        with open(json_filename, 'w') as json_file:
+            json.dump(tokens, json_file, indent=4)
+
+        tokens_str = json.dumps(tokens, indent=4)
 
     elif choice == '4':
         manual_text_msg = "\n== Ingresar texto manual ==\n"
@@ -119,14 +116,10 @@ while True:
 
         tokens = process_file(input_text, start_node, token_names, False)
 
-        if isinstance(tokens, str):
-            pprint(tokens)
-        else:
-            with open('tokens_manual.json', 'w') as json_file:
-                json.dump(tokens, json_file, indent=4)
+        with open('tokens_manual.json', 'w') as json_file:
+            json.dump(tokens, json_file, indent=4)
 
-            tokens_str = json.dumps(tokens, indent=4)
-            pprint(tokens)
+        tokens_str = json.dumps(tokens, indent=4)
 
     elif choice == '5':
         exit_msg = "\nSaliendo del programa. ¡Hasta luego!\n"
