@@ -81,15 +81,15 @@ def lexical_analyzer(input_string, start_node, token_names):
 
                 tokens.append({"TokenName": token_name, "Lexema": lexeme})
 
-                log_entry = f"Token reconocido '{
-                    lexeme}' con regex {token_name}\n"
+                log_entry = f"Token reconocido {
+                    repr(lexeme)} con regex {token_name}\n"
                 log_file.write(log_entry)
 
                 current_position = last_accepting_pos + 1
             else:
                 error_char = input_string[current_position]
                 error_msg = f"Error léxico en la posición {
-                    current_position}: '{error_char}'\n"
+                    current_position}: '{repr(error_char)}'\n"
                 log_file.write(error_msg)
                 current_position += 1
 
