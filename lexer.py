@@ -1,5 +1,4 @@
 import pickle
-import os
 import json
 
 
@@ -91,6 +90,7 @@ def lexical_analyzer(input_string, start_node, token_names):
                 error_msg = f"Error léxico en la posición {
                     current_position}: '{repr(error_char)}'\n"
                 log_file.write(error_msg)
+                print(error_msg)
                 current_position += 1
 
     return tokens
